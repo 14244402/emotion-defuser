@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>情緒拆彈隊 Emotion Defuser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet"/>
+<script src="lib/tailwind.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      /* PDF p.1「復古可愛配色 Retro Pop」色票 */
+      colors: {
+        paper:  "#FCF5E6",  /* 溫暖奶油底色(絕不用死白) */
+        ink:    "#211A12",
+        teal:   "#109A91",
+        mango:  "#FDAB3C",
+        tang:   "#F56B25",
+        tomato: "#DD3A31",
+        blush:  "#FA9EB7",
+        skyy:   "#6BC6E6",
+        navy:   "#0F0F6D",
+        lemon:  "#F8F47B",
+        forest: "#1F663F",
+        sand:   "#EEE3BF",
+        cocoa:  "#9E7460",
+        plum:   "#7D1841",
+        board:  "#4E7A66",  /* 黑板綠 */
+        creamy: "#FFEDC0",
+      },
+      fontFamily: { hun: ["Huninn", "Noto Sans TC", "sans-serif"] },
+    },
+  },
+};
+</script>
+<style>
+  /* ─── 排版節奏:中文字距、避免孤字、標點懸掛 ─── */
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    letter-spacing: .015em;
+    background-image: radial-gradient(rgba(33,26,18,.045) 1.5px, transparent 1.5px);
+    background-size: 26px 26px;
+  }
+  p, h1, h2, h3 { text-wrap: pretty; }
+  h1, h2, h3 { text-wrap: balance; }
+
+  /* 注音 ruby:台式直式注音,在字的右側(保留 <ruby><rt> 結構,以 CSS 直排呈現) */
+  ruby { display: inline-flex; flex-direction: row; align-items: center; vertical-align: bottom; line-height: 1.2; }
+  rt   {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 0.32em; line-height: 1.06; letter-spacing: 0;
+    opacity: .85; font-weight: 700;
+    margin-left: 0.1em; margin-right: 0.02em; max-height: 3.2em;
+  }
+  /* 注音模式下段落行高要更鬆,否則直排注音會擠到上一行 */
+  .zy-mode p, .zy-mode h1, .zy-mode h2, .zy-mode h3, .zy-mode .lead { line-height: 1.95; }
+
+  /* ─── 插圖融入版面:去掉白底方框感,邊緣柔化 ─── */
+  .illo { display: block; width: 100%; height: 100%; object-fit: cover;
+          filter: saturate(.94) contrast(1.02); }
+  .illo-wrap { position: relative; overflow: hidden; }
+  /* 極淡的內側暗角,讓 AI 圖的方形邊界不再突兀 */
+  .illo-wrap::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 26px 6px rgba(33,26,18,.07);
+  }
+
+  /* ─── 動畫:收斂彈跳幅度,改用一致的緩動曲線 ─── */
+  @keyframes screenIn  { from { opacity: 0; transform: translate3d(0,-18px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+  @keyframes popIn     { 0% { opacity: 0; transform: scale(.86) translateY(10px); } 65% { transform: scale(1.02) translateY(0); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes fadeUp    { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes splashIn  { from { opacity: 0; transform: scale(.8) rotate(-6deg); } to { opacity: 1; transform: scale(1) rotate(-2deg); } }
+  @keyframes splashOut { to { opacity: 0; transform: scale(1.12); } }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes floaty    { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-8px) rotate(3deg); } }
+  @keyframes wiggle    { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+  @keyframes blinky    { 0%,55% { opacity: 1; } 60%,100% { opacity: .2; } }
+  /* 選中選項時的確認回饋 */
+  @keyframes pickPop   { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  /* 熱區可點的呼吸提示(取代看得見的虛線框) */
+  @keyframes breathe   { 0%,100% { opacity: .0; } 50% { opacity: .35; } }
+
+  .screen-in { animation: screenIn .4s cubic-bezier(.22,.7,.3,1) both; will-change: transform, opacity; }
+  .picked    { animation: pickPop .3s cubic-bezier(.3,1.3,.5,1) both; }
+  canvas.pad { touch-action: none; }
+
+  /* 尊重系統的「減少動態效果」設定 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body class="bg-paper text-ink font-hun min-h-screen">
+<div id="root">
+  <!-- React 掛載前的載入畫面;若 CDN 載入失敗會轉為錯誤提示 -->
+  <div id="boot-msg" style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:'Noto Sans TC',sans-serif;color:#211A12;text-align:center;padding:24px;">
+    <div style="font-size:28px;font-weight:900;">💣 遊戲載入中…</div>
+    <div style="font-size:15px;opacity:.65;">第一次開啟需要網路連線,請稍等幾秒</div>
+  </div>
+</div>
+<script>
+  setTimeout(function(){
+    var m = document.getElementById("boot-msg");
+    if (m) m.innerHTML =
+      '<div style="font-size:26px;font-weight:900;">⚠️ 遊戲資源載入失敗</div>' +
+      '<div style="font-size:16px;line-height:1.8;">這個遊戲需要網路連線才能載入。<br>' +
+      '請確認電腦已連上網路,然後按 <b>F5</b> 重新整理再試一次。</div>';
+  }, 8000);
+</script>
+
+<script src="lib/react.production.min.js"></script>
+<script src="lib/react-dom.production.min.js"></script>
+<script>window.react = window.React; /* lucide-react UMD 以小寫 react 為全域相依 */</script>
+<script src="lib/lucide-react.min.js"></script>
+<script src="lib/babel.min.js"></script>
+
+<script type="text/babel">
+/* ═══════════════════════════════════════════════════════════════════
+   情緒拆彈隊 Emotion Defuser — 純邏輯核心模組(無任何 UI)
+   (內嵌版:依模組頂部說明,import 行改為 const {…} = React,
+    並移除 export 關鍵字。其餘邏輯與原檔完全相同,勿改。)
+   ═══════════════════════════════════════════════════════════════════ */
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* ═══════════ 1. 語言/注音工具 ═══════════ */
+const ZY_RE = /[ㄅ-ㄯˉˊˇˋ˙]/;
+const ZY_ALL = /[ㄅ-ㄯˉˊˇˋ˙]/g;
+
+/** 去掉注音,取得純中文 */
+const strip = (s) => (s || "").replace(ZY_ALL, "");
+
+/** 把內嵌注音字串切成 [{c:字, z:注音}];標點的 z 為空字串 */
+function seg(s) {
+  const out = [];
+  for (const ch of s || "") {
+    if (ZY_RE.test(ch) && out.length && out[out.length - 1].c)
+      out[out.length - 1].z += ch;
+    else out.push(ZY_RE.test(ch) ? { c: "", z: ch } : { c: ch, z: "" });
+  }
+  return out;
+}
+
+/** 取得某語言的「純文字」(給語音、下載、placeholder 用) */
+function textOf(lang, pair) {
+  return lang === "en" ? pair.en : strip(pair.zh);
+}
+
+/** 取得某語言的「渲染資料」 */
+function segOf(lang, pair) {
+  if (lang === "en") return { mode: "plain", text: pair.en };
+  if (lang === "zh") return { mode: "plain", text: strip(pair.zh) };
+  return { mode: "ruby", units: seg(pair.zh) };
+}
+
+/* ═══════════ 2. 遊戲文案 + 關卡資料 ═══════════ */
+const STR = {
+  title:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ",en:"Emotion Defuser"},
+  subtitle:{zh:"一ㄧ場ㄔㄤˇ關ㄍㄨㄢ於ㄩˊ同ㄊㄨㄥˊ理ㄌㄧˇ心ㄒㄧㄣ的˙ㄉㄜ小ㄒㄧㄠˇ任ㄖㄣˋ務ㄨˋ",en:"A small mission about empathy"},
+  back:{zh:"上ㄕㄤˋ一ㄧ步ㄅㄨˋ",en:"Back"},
+  next:{zh:"下ㄒㄧㄚˋ一ㄧ步ㄅㄨˋ",en:"Next"},
+  send:{zh:"送ㄙㄨㄥˋ出ㄔㄨ",en:"Submit"},
+  c1:{zh:"我ㄨㄛˇ們˙ㄇㄣ身ㄕㄣ邊ㄅㄧㄢ時ㄕˊ常ㄔㄤˊ會ㄏㄨㄟˋ出ㄔㄨ現ㄒㄧㄢˋ潛ㄑㄧㄢˊ在ㄗㄞˋ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"Emotion bombs often hide around us"},
+  c2:{zh:"像ㄒㄧㄤˋ是ㄕˋ朋ㄆㄥˊ友ㄧㄡˇ、同ㄊㄨㄥˊ學ㄒㄩㄝˊ、老ㄌㄠˇ師ㄕ",en:"Like friends, classmates, and teachers"},
+  c3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ沒ㄇㄟˊ有ㄧㄡˇ處ㄔㄨˇ理ㄌㄧˇ好ㄏㄠˇ的˙ㄉㄜ話ㄏㄨㄚˋ,可ㄎㄜˇ能ㄋㄥˊ會ㄏㄨㄟˋ爆ㄅㄠˋ炸ㄓㄚˋ!",en:"If we don't handle them well, they might explode!"},
+  c4:{zh:"因ㄧㄣ此ㄘˇ,為ㄨㄟˋ了˙ㄌㄜ日ㄖˋ常ㄔㄤˊ的˙ㄉㄜ和ㄏㄜˊ平ㄆㄧㄥˊ,我ㄨㄛˇ們˙ㄇㄣ需ㄒㄩ要ㄧㄠˋ學ㄒㄩㄝˊ習ㄒㄧˊ如ㄖㄨˊ何ㄏㄜˊ拆ㄔㄞ解ㄐㄧㄝˇ他ㄊㄚ人ㄖㄣˊ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"So, for everyday peace, let's learn how to defuse other people's emotion bombs"},
+  ready:{zh:"你ㄋㄧˇ準ㄓㄨㄣˇ備ㄅㄟˋ好ㄏㄠˇ了˙ㄌㄜ嗎˙ㄇㄚ?",en:"Are you ready?"},
+  mTitle:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ收ㄕㄡ到ㄉㄠˋ了˙ㄌㄜ任ㄖㄣˋ務ㄨˋ!",en:"The Emotion Defuser squad has a mission!"},
+  m1:{zh:"你ㄋㄧˇ身ㄕㄣ邊ㄅㄧㄢ的˙ㄉㄜ同ㄊㄨㄥˊ學ㄒㄩㄝˊ比ㄅㄧˇ賽ㄙㄞˋ輸ㄕㄨ了˙ㄌㄜ",en:"A classmate near you just lost the game"},
+  m2:{zh:"他ㄊㄚ失ㄕ落ㄌㄨㄛˋ地˙ㄉㄜ坐ㄗㄨㄛˋ在ㄗㄞˋ位ㄨㄟˋ子˙ㄗ上ㄕㄤˋ…",en:"They sit at their seat, feeling down…"},
+  mQ:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ,你ㄋㄧˇ該ㄍㄞ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"Emotion Defuser, what should you do?"},
+  step1:{zh:"Step 1 觀ㄍㄨㄢ察ㄔㄚˊ",en:"Step 1 Observe"},
+  step2:{zh:"Step 2 思ㄙ考ㄎㄠˇ",en:"Step 2 Think"},
+  step3:{zh:"Step 3 行ㄒㄧㄥˊ動ㄉㄨㄥˋ",en:"Step 3 Act"},
+  s1Q:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ,同ㄊㄨㄥˊ學ㄒㄩㄝˊ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ甚ㄕㄣˊ麼˙ㄇㄜ心ㄒㄧㄣ情ㄑㄧㄥˊ呢˙ㄋㄜ?",en:"Look closely — how is your classmate feeling right now?"},
+  s1Hint:{zh:"把ㄅㄚˇ滑ㄏㄨㄚˊ鼠ㄕㄨˇ移ㄧˊ到ㄉㄠˋ他ㄊㄚ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ、眼ㄧㄢˇ睛ㄐㄧㄥ、嘴ㄗㄨㄟˇ巴˙ㄅㄚ、手ㄕㄡˇ上ㄕㄤˋ看ㄎㄢˋ看˙ㄎㄢ",en:"Move your mouse over the eyebrows, eyes, mouth, and hands"},
+  hpBrow:{zh:"看ㄎㄢˋ看˙ㄎㄢ他ㄊㄚ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ是ㄕˋ向ㄒㄧㄤˋ上ㄕㄤˋ↗還ㄏㄞˊ是ㄕˋ向ㄒㄧㄤˋ下ㄒㄧㄚˋ↘呢˙ㄋㄜ?",en:"Are the eyebrows going up ↗ or down ↘?"},
+  hpMouth:{zh:"看ㄎㄢˋ看˙ㄎㄢ他ㄊㄚ的˙ㄉㄜ嘴ㄗㄨㄟˇ巴˙ㄅㄚ是ㄕˋ向ㄒㄧㄤˋ上ㄕㄤˋ還ㄏㄞˊ是ㄕˋ向ㄒㄧㄤˋ下ㄒㄧㄚˋ呢˙ㄋㄜ?",en:"Is the mouth turning up or down?"},
+  hpHand:{zh:"你ㄋㄧˇ甚ㄕㄣˊ麼˙ㄇㄜ時ㄕˊ候ㄏㄡˋ會ㄏㄨㄟˋ有ㄧㄡˇ這ㄓㄜˋ樣ㄧㄤˋ的˙ㄉㄜ動ㄉㄨㄥˋ作ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"When do you make a pose like this?"},
+  s1Me:{zh:"我ㄨㄛˇ覺ㄐㄩㄝˊ得˙ㄉㄜ他ㄊㄚ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ…",en:"I think they are feeling…"},
+  s1Ph:{zh:"我覺得他現在是…",en:"I think they feel…"},
+  s1bA:{zh:"這ㄓㄜˋ樣ㄧㄤˋ啊˙ㄚ,如ㄖㄨˊ果ㄍㄨㄛˇ你ㄋㄧˇ",en:"I see! If YOU felt "},
+  s1bB:{zh:"的˙ㄉㄜ話ㄏㄨㄚˋ,你ㄋㄧˇ會ㄏㄨㄟˋ露ㄌㄨˋ出ㄔㄨ甚ㄕㄣˊ麼˙ㄇㄜ樣ㄧㄤˋ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ呢˙ㄋㄜ?",en:", what would your face look like?"},
+  s1bC:{zh:"打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ做ㄗㄨㄛˋ做˙ㄗㄨㄛ看ㄎㄢˋ,並ㄅㄧㄥˋ畫ㄏㄨㄚˋ下ㄒㄧㄚˋ來ㄌㄞˊ吧˙ㄅㄚ!",en:"Turn on the camera, try it, and draw it!"},
+  camCap:{zh:"觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ",en:"Watch your face"},
+  drawCap:{zh:"畫ㄏㄨㄚˋ出ㄔㄨ你ㄋㄧˇ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ",en:"Draw your face"},
+  camOn:{zh:"打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ觀ㄍㄨㄢ察ㄔㄚˊ",en:"Open the camera"},
+  camOff:{zh:"關ㄍㄨㄢ閉ㄅㄧˋ鏡ㄐㄧㄥˋ頭ㄊㄡˊ",en:"Close the camera"},
+  s1bHint:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ、眼ㄧㄢˇ睛ㄐㄧㄥ、嘴ㄗㄨㄟˇ巴˙ㄅㄚ有ㄧㄡˇ甚ㄕㄣˊ麼˙ㄇㄜ變ㄅㄧㄢˋ化ㄏㄨㄚˋ?",en:"Look closely: what changed in your eyebrows, eyes, and mouth?"},
+  eraser:{zh:"橡ㄒㄧㄤˋ皮ㄆㄧˊ擦ㄘㄚ",en:"Eraser"},
+  clearAll:{zh:"全ㄑㄩㄢˊ部ㄅㄨˋ清ㄑㄧㄥ除ㄔㄨˊ",en:"Clear all"},
+  s2Qa:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ",en:"If "},
+  s2Qb:{zh:"你ㄋㄧˇ",en:"YOU"},
+  s2Qc:{zh:"遇ㄩˋ到ㄉㄠˋ這ㄓㄜˋ樣ㄧㄤˋ的˙ㄉㄜ情ㄑㄧㄥˊ境ㄐㄧㄥˋ,你ㄋㄧˇ會ㄏㄨㄟˋ希ㄒㄧ望ㄨㄤˋ別ㄅㄧㄝˊ人ㄖㄣˊ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ?",en:" were in this situation, what would you want others to do?"},
+  n1:{zh:"給ㄍㄟˇ我ㄨㄛˇ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ",en:"Give me some space"},
+  n2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ我ㄨㄛˇ說ㄕㄨㄛ",en:"Quietly listen to me"},
+  n3:{zh:"陪ㄆㄟˊ我ㄨㄛˇ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Take a walk with me"},
+  other:{zh:"其ㄑㄧˊ他ㄊㄚ",en:"Other"},
+  s2Ph:{zh:"我希望別人…",en:"I'd want others to…"},
+  s3Qa:{zh:"當ㄉㄤ你ㄋㄧˇ看ㄎㄢˋ到ㄉㄠˋ",en:"When you see "},
+  s3Qb:{zh:"別ㄅㄧㄝˊ人ㄖㄣˊ",en:"someone else"},
+  s3Qc:{zh:"這ㄓㄜˋ樣ㄧㄤˋ時ㄕˊ,你ㄋㄧˇ會ㄏㄨㄟˋ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ?",en:" like this, what will you do?"},
+  a1:{zh:"給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ",en:"Give them some space"},
+  a2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ",en:"Quietly listen to them"},
+  a3:{zh:"陪ㄆㄟˊ他ㄊㄚ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Take a walk with them"},
+  s3Ph:{zh:"我會…",en:"I would…"},
+  r1:{zh:"謝ㄒㄧㄝˋ謝˙ㄒㄧㄝ你ㄋㄧˇ,我ㄨㄛˇ現ㄒㄧㄢˋ在ㄗㄞˋ好ㄏㄠˇ多ㄉㄨㄛ了˙ㄌㄜ。",en:"Thank you, I feel much better now."},
+  r2:{zh:"謝ㄒㄧㄝˋ謝˙ㄒㄧㄝ你ㄋㄧˇ,可ㄎㄜˇ是ㄕˋ我ㄨㄛˇ現ㄒㄧㄢˋ在ㄗㄞˋ想ㄒㄧㄤˇ一ㄧ個˙ㄍㄜ人ㄖㄣˊ靜ㄐㄧㄥˋ一ㄧ靜ㄐㄧㄥˋ。",en:"Thank you, but right now I'd like to be alone for a bit."},
+  r3:{zh:"你ㄋㄧˇ現ㄒㄧㄢˋ在ㄗㄞˋ有ㄧㄡˇ空ㄎㄨㄥˋ嗎˙ㄇㄚ?我ㄨㄛˇ想ㄒㄧㄤˇ和ㄏㄢˋ你ㄋㄧˇ聊ㄌㄧㄠˊ一ㄧ聊ㄌㄧㄠˊ。",en:"Are you free right now? I'd like to talk with you."},
+  peersBtn:{zh:"看ㄎㄢˋ看˙ㄎㄢ其ㄑㄧˊ他ㄊㄚ小ㄒㄧㄠˇ朋ㄆㄥˊ友ㄧㄡˇ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ",en:"See what other kids did"},
+  endHeart:{zh:"同ㄊㄨㄥˊ理ㄌㄧˇ心ㄒㄧㄣ",en:"Empathy"},
+  endSteps:{zh:"觀ㄍㄨㄢ察ㄔㄚˊ · 思ㄙ考ㄎㄠˇ · 行ㄒㄧㄥˊ動ㄉㄨㄥˋ",en:"Observe · Think · Act"},
+  b1:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ生ㄕㄥ氣ㄑㄧˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ別ㄅㄧㄝˊ人ㄖㄣˊ不ㄅㄨˊ要ㄧㄠˋ一ㄧ直ㄓˊ講ㄐㄧㄤˇ話ㄏㄨㄚˋ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ先ㄒㄧㄢ給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ。",en:"If it were me, I'd feel angry. I'd want others to stop talking, so I'd give them some space first."},
+  b2:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ難ㄋㄢˊ過ㄍㄨㄛˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ陪ㄆㄟˊ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ坐ㄗㄨㄛˋ在ㄗㄞˋ他ㄊㄚ旁ㄆㄤˊ邊ㄅㄧㄢ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ。",en:"If it were me, I'd feel sad. I'd want someone to quietly stay with me, so I'd sit beside them and listen."},
+  b3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ不ㄅㄨˋ甘ㄍㄢ心ㄒㄧㄣ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ懂ㄉㄨㄥˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ他ㄊㄚ說ㄕㄨㄛ『下ㄒㄧㄚˋ次ㄘˋ再ㄗㄞˋ一ㄧ起ㄑㄧˇ加ㄐㄧㄚ油ㄧㄡˊ』。",en:"If it were me, I'd feel frustrated. I'd want someone to understand me, so I'd say: let's try again next time!"},
+  b4:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ疲ㄆㄧˊ累ㄌㄟˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ能ㄋㄥˊ趴ㄆㄚ在ㄗㄞˋ桌ㄓㄨㄛ子˙ㄗ休ㄒㄧㄡ息ㄒㄧˊ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ先ㄒㄧㄢ給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ。",en:"If it were me, I'd feel tired. I'd want to rest on my desk, so I'd give them some space first."},
+  b5:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ難ㄋㄢˊ過ㄍㄨㄛˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ能ㄋㄥˊ讓ㄖㄤˋ我ㄨㄛˇ轉ㄓㄨㄢˇ換ㄏㄨㄢˋ心ㄒㄧㄣ情ㄑㄧㄥˊ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ他ㄊㄚ分ㄈㄣ享ㄒㄧㄤˇ零ㄌㄧㄥˊ食ㄕˊ。",en:"If it were me, I'd feel sad. I'd want someone to cheer me up, so I'd share a snack with them."},
+  b6:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ生ㄕㄥ氣ㄑㄧˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ能ㄋㄥˊ開ㄎㄞ導ㄉㄠˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ老ㄌㄠˇ師ㄕ說ㄕㄨㄛ。",en:"If it were me, I'd feel angry. I'd want someone to guide me, so I'd talk to the teacher."},
+  b7:{zh:"就ㄐㄧㄡˋ算ㄙㄨㄢˋ用ㄩㄥˋ自ㄗˋ己ㄐㄧˇ希ㄒㄧ望ㄨㄤˋ的˙ㄉㄜ方ㄈㄤ式ㄕˋ安ㄢ慰ㄨㄟˋ,別ㄅㄧㄝˊ人ㄖㄣˊ也ㄧㄝˇ不ㄅㄨˋ一ㄧ定ㄉㄧㄥˋ能ㄋㄥˊ接ㄐㄧㄝ受ㄕㄡˋ呢˙ㄋㄜ。",en:"Even if we comfort others the way WE like, they may not always accept it."},
+  b8:{zh:"一ㄧ樣ㄧㄤˋ的˙ㄉㄜ選ㄒㄩㄢˇ擇ㄗㄜˊ背ㄅㄟˋ後ㄏㄡˋ也ㄧㄝˇ會ㄏㄨㄟˋ有ㄧㄡˇ不ㄅㄨˋ同ㄊㄨㄥˊ理ㄌㄧˇ由ㄧㄡˊ呢˙ㄋㄜ。",en:"The same choice can come from different reasons, too."},
+  again:{zh:"再ㄗㄞˋ玩ㄨㄢˊ一ㄧ次ㄘˋ",en:"Play again"},
+  dl:{zh:"下ㄒㄧㄚˋ載ㄗㄞˋ我ㄨㄛˇ的˙ㄉㄜ答ㄉㄚˊ案ㄢˋ",en:"Download my answers"},
+  dlTitle:{zh:"情緒拆彈隊 — 我的答案",en:"Emotion Defuser — My Answers"},
+  dlScene:{zh:"任務情境:同學比賽輸了",en:"Mission: a classmate lost the game"},
+  dlQ1:{zh:"① 觀察:我覺得他現在是",en:"1. Observe: I think they felt"},
+  dlQ2:{zh:"② 思考:如果是我,我希望別人",en:"2. Think: if it were me, I'd want others to"},
+  dlQ3:{zh:"③ 行動:我會",en:"3. Act: I would"},
+  dlR:{zh:"同學的回應",en:"Their response"},
+  dlDraw:{zh:"我畫的表情:",en:"My drawing:"},
+  dlDate:{zh:"日期",en:"Date"},
+  dlFoot:{zh:"同理心 = 觀察 + 思考 + 行動",en:"Empathy = Observe + Think + Act"},
+  dlEmpty:{zh:"(沒有填)",en:"(blank)"},
+};
+
+/** Step 1 情緒選項(不含「其他」;其他=自由輸入) */
+const EMO = {
+  angry:{zh:"生ㄕㄥ氣ㄑㄧˋ",en:"Angry"},
+  sad:{zh:"難ㄋㄢˊ過ㄍㄨㄛˋ",en:"Sad"},
+  tired:{zh:"疲ㄆㄧˊ累ㄌㄟˋ",en:"Tired"},
+};
+const EMO_KEYS = ["angry","sad","tired"];
+
+/** Step 2 / Step 3 選項 */
+const CHOICES = {
+  need:[
+    {key:"space", strKey:"n1"},
+    {key:"listen",strKey:"n2"},
+    {key:"walk",  strKey:"n3"},
+  ],
+  action:[
+    {key:"space", strKey:"a1"},
+    {key:"listen",strKey:"a2"},
+    {key:"walk",  strKey:"a3"},
+  ],
+};
+
+/** Step 1 觀察熱區(關卡資料) */
+const HOTSPOTS = [
+  {id:"brow",  kind:"tip",  strKey:"hpBrow",  x:36,y:26,w:28,h:9},
+  {id:"eye",   kind:"lens", strKey:null,      x:36,y:36,w:28,h:8},
+  {id:"mouth", kind:"tip",  strKey:"hpMouth", x:41,y:45,w:18,h:9},
+  {id:"handL", kind:"tip",  strKey:"hpHand",  x:21,y:52,w:17,h:18},
+  {id:"handR", kind:"tip",  strKey:"hpHand",  x:62,y:52,w:17,h:18},
+];
+
+/** 結尾黑板泡泡的順序(HEART = 中央同理心愛心) */
+const END_ORDER = ["b1","b2","b3","b4","HEART","b5","b6","b7","b8"];
+
+/* ═══════════ 3. 流程狀態機資料 ═══════════ */
+const FLOW = {
+  start:  {next:"comic",  back:null},
+  comic:  {next:"mission",back:"start"},
+  mission:{next:"step1",  back:"comic"},
+  step1:  {next:"step1b", back:"mission"},
+  step1b: {next:"step2",  back:"step1"},
+  step2:  {next:"step3",  back:"step1b"},
+  step3:  {next:"resp",   back:"step2"},
+  resp:   {next:"end",    back:"step3"},
+  end:    {next:null,     back:"resp"},
+};
+/** 進度條百分比 */
+const PROGRESS = {start:0,comic:14,mission:28,step1:42,step1b:56,step2:70,step3:82,resp:92,end:100};
+/** 進入這些畫面時要先播步驟字卡(splash) */
+const SPLASH_OF = {step1:1,step2:2,step3:3};
+
+/* ═══════════ 4. 語音(Web Speech API) ═══════════ */
+function stopSpeech(){
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+function speak(lang, txt){
+  if (!("speechSynthesis" in window) || !txt) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = lang === "en" ? "en-US" : "zh-TW";
+  u.rate = 0.95;
+  const vs = window.speechSynthesis.getVoices();
+  const v = vs.find(v=>v.lang.replace("_","-").startsWith(u.lang))
+        || vs.find(v=>v.lang.startsWith(lang==="en"?"en":"zh"));
+  if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+const speakPair = (lang, pair) => speak(lang, textOf(lang, pair));
+
+/* ═══════════ 5. 回應與答案邏輯 ═══════════ */
+const RESP_MAP = {space:[0,2], listen:[0,1], walk:[0,1], other:[0,1,2]};
+function pickResponse(actionKey, rng=Math.random){
+  const arr = RESP_MAP[actionKey] || [0,1,2];
+  return arr[Math.floor(rng()*arr.length)];
+}
+
+const EMPTY_ANSWERS = {
+  emotion:null,
+  emotionText:"",
+  need:null,
+  needText:"",
+  action:null,
+  actionText:"",
+  resp:null,
+  draw:null,
+};
+
+function answerSummary(lang, ans){
+  const need = ans.need==="other" ? (ans.needText||textOf(lang,STR.dlEmpty))
+    : ans.need ? textOf(lang, STR[{space:"n1",listen:"n2",walk:"n3"}[ans.need]]) : "—";
+  const action = ans.action==="other" ? (ans.actionText||textOf(lang,STR.dlEmpty))
+    : ans.action ? textOf(lang, STR[{space:"a1",listen:"a2",walk:"a3"}[ans.action]]) : "—";
+  const emotion = ans.emotion==="other" ? (ans.emotionText||"—")
+    : ans.emotion ? textOf(lang, EMO[ans.emotion]) : "—";
+  const response = ans.resp!=null ? textOf(lang, STR["r"+(ans.resp+1)]) : "—";
+  return {emotion, need, action, response};
+}
+
+function generateAnswerCardPNG(lang, ans, {fontFamily="'Noto Sans TC',sans-serif"}={}){
+  return new Promise(resolve=>{
+    const cv=document.createElement("canvas"); cv.width=880; cv.height=1240;
+    const ctx=cv.getContext("2d");
+    const P=k=>textOf(lang,STR[k]);
+    const wrap=(text,x,y,maxW,lh)=>{
+      let line="",yy=y;
+      for(const ch of text){
+        if(ctx.measureText(line+ch).width>maxW){ctx.fillText(line,x,yy);line=ch;yy+=lh;}
+        else line+=ch;
+      }
+      ctx.fillText(line,x,yy); return yy+lh;
+    };
+    ctx.fillStyle="#FDF9F3"; ctx.fillRect(0,0,880,1240);
+    ctx.strokeStyle="#F5B94E"; ctx.lineWidth=12; ctx.strokeRect(12,12,856,1216);
+    ctx.fillStyle="#E0524B"; ctx.font="bold 42px "+fontFamily; ctx.textAlign="center";
+    ctx.fillText(P("dlTitle"),440,96);
+    ctx.fillStyle="#8A7A63"; ctx.font="24px "+fontFamily;
+    ctx.fillText(P("dlScene"),440,142);
+    ctx.textAlign="left";
+    const sum=answerSummary(lang,ans);
+    let y=210;
+    const item=(label,val)=>{
+      ctx.fillStyle="#C98A2E"; ctx.font="bold 26px "+fontFamily;
+      y=wrap(label,70,y,740,38);
+      ctx.fillStyle="#4A4160"; ctx.font="bold 32px "+fontFamily;
+      y=wrap(val,70,y+6,740,46)+26;
+    };
+    item(P("dlQ1"),sum.emotion);
+    item(P("dlQ2"),sum.need);
+    item(P("dlQ3"),sum.action);
+    item(P("dlR"),sum.response);
+    const fin=()=>{
+      ctx.fillStyle="#E0524B"; ctx.font="bold 28px "+fontFamily; ctx.textAlign="center";
+      ctx.fillText(P("dlFoot"),440,1150);
+      ctx.fillStyle="#8A7A63"; ctx.font="22px "+fontFamily;
+      ctx.fillText(P("dlDate")+": "+new Date().toLocaleDateString(),440,1190);
+      cv.toBlob(resolve);
+    };
+    if(ans.draw){
+      ctx.fillStyle="#C98A2E"; ctx.font="bold 26px "+fontFamily;
+      ctx.fillText(P("dlDraw"),70,y);
+      const im=new Image();
+      im.onload=()=>{
+        ctx.fillStyle="#fff"; ctx.fillRect(70,y+14,330,258);
+        ctx.drawImage(im,70,y+14,330,258);
+        ctx.strokeStyle="#E3D4AD"; ctx.lineWidth=4; ctx.strokeRect(70,y+14,330,258);
+        fin();
+      };
+      im.src=ans.draw;
+    } else fin();
+  });
+}
+async function downloadAnswerCard(lang, ans, opts){
+  const blob=await generateAnswerCardPNG(lang, ans, opts);
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=(lang==="en"?"my_answers_emotion_defuser":"我的答案_情緒拆彈隊")+".png";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+/* ═══════════ 6. React Hooks ═══════════ */
+function useEmotionDefuser({
+  initialLang="zy",
+  splashInMs=1350,
+  splashOutMs=500,
+  autoSpeak=true,
+  advanceDelayMs=350,
+}={}){
+  const [lang,setLang]=useState(initialLang);
+  const [screen,setScreen]=useState("start");
+  const [splash,setSplash]=useState(null);
+  const [answers,setAnswers]=useState(EMPTY_ANSWERS);
+  const timers=useRef([]);
+  const later=(fn,ms)=>{timers.current.push(setTimeout(fn,ms));};
+  useEffect(()=>()=>{timers.current.forEach(clearTimeout);stopSpeech();},[]);
+
+  const goTo=useCallback((scr)=>{
+    stopSpeech();
+    setScreen(scr);
+    const n=SPLASH_OF[scr];
+    if(n){
+      setSplash({n,out:false});
+      if(autoSpeak) speakPair(lang, STR["step"+n]);
+      later(()=>setSplash(s=>s&&{...s,out:true}),splashInMs);
+      later(()=>setSplash(null),splashInMs+splashOutMs);
+    }
+  },[lang,autoSpeak,splashInMs,splashOutMs]);
+
+  const next=useCallback(()=>{const t=FLOW[screen]?.next;if(t)goTo(t);},[screen,goTo]);
+  const back=useCallback(()=>{
+    const t=FLOW[screen]?.back;
+    if(!t)return;
+    if(screen==="resp") setAnswers(a=>({...a,resp:null}));
+    goTo(t);
+  },[screen,goTo]);
+  const restart=useCallback(()=>{setAnswers(EMPTY_ANSWERS);goTo("start");},[goTo]);
+
+  const pickEmotion=useCallback((key)=>{
+    setAnswers(a=>({...a,emotion:key,emotionText:""}));
+    if(autoSpeak) speakPair(lang,EMO[key]);
+    later(()=>goTo("step1b"),advanceDelayMs);
+  },[lang,goTo,autoSpeak,advanceDelayMs]);
+  const pickEmotionOther=useCallback((text)=>{
+    if(!text?.trim())return false;
+    setAnswers(a=>({...a,emotion:"other",emotionText:text.trim()}));
+    goTo("step1b"); return true;
+  },[goTo]);
+
+  const pickNeed=useCallback((key)=>{
+    setAnswers(a=>({...a,need:key,needText:""}));
+    if(autoSpeak) speakPair(lang,STR[CHOICES.need.find(c=>c.key===key).strKey]);
+    later(()=>goTo("step3"),advanceDelayMs);
+  },[lang,goTo,autoSpeak,advanceDelayMs]);
+  const pickNeedOther=useCallback((text)=>{
+    if(!text?.trim())return false;
+    setAnswers(a=>({...a,need:"other",needText:text.trim()}));
+    goTo("step3"); return true;
+  },[goTo]);
+
+  const commitAction=useCallback((key,text)=>{
+    const resp=pickResponse(key);
+    setAnswers(a=>({...a,action:key,actionText:text||"",resp}));
+    if(autoSpeak) later(()=>speakPair(lang,STR["r"+(resp+1)]),650);
+  },[lang,autoSpeak]);
+  const pickAction=useCallback((key)=>{
+    if(autoSpeak) speakPair(lang,STR[CHOICES.action.find(c=>c.key===key).strKey]);
+    commitAction(key,"");
+    later(()=>goTo("resp"),advanceDelayMs);
+  },[lang,goTo,autoSpeak,advanceDelayMs,commitAction]);
+  const pickActionOther=useCallback((text)=>{
+    if(!text?.trim())return false;
+    commitAction("other",text.trim());
+    goTo("resp"); return true;
+  },[goTo,commitAction]);
+
+  const setDrawing=useCallback((dataURL)=>setAnswers(a=>({...a,draw:dataURL})),[]);
+
+  return {
+    lang,setLang, screen, splash, answers,
+    progress: PROGRESS[screen] ?? 0,
+    respKey: answers.resp!=null ? "r"+(answers.resp+1) : null,
+    goTo, next, back, restart,
+    pickEmotion, pickEmotionOther,
+    pickNeed, pickNeedOther,
+    pickAction, pickActionOther,
+    setDrawing,
+    say:(pairOrKey)=>speakPair(lang, typeof pairOrKey==="string"?STR[pairOrKey]:pairOrKey),
+    text:(pairOrKey)=>textOf(lang, typeof pairOrKey==="string"?STR[pairOrKey]:pairOrKey),
+    render:(pairOrKey)=>segOf(lang, typeof pairOrKey==="string"?STR[pairOrKey]:pairOrKey),
+    summary:()=>answerSummary(lang,answers),
+    download:(opts)=>downloadAnswerCard(lang,answers,opts),
+  };
+}
+
+function useDrawingPad({canvasRef, initialImage=null, onChange,
+  penWidth=5, eraserWidth=24, background="#fff"}){
+  const [color,setColor]=useState("#4A4160");
+  const [erase,setErase]=useState(false);
+  const S=useRef({drawing:false,prev:null,color:"#4A4160",erase:false});
+  useEffect(()=>{S.current.color=color;S.current.erase=erase;},[color,erase]);
+  useEffect(()=>{
+    const cv=canvasRef.current; if(!cv)return;
+    const ctx=cv.getContext("2d");
+    ctx.fillStyle=background; ctx.fillRect(0,0,cv.width,cv.height);
+    if(initialImage){const im=new Image();im.onload=()=>ctx.drawImage(im,0,0);im.src=initialImage;}
+    ctx.lineCap="round"; ctx.lineJoin="round";
+    const pos=e=>{const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;
+      return{x:(t.clientX-r.left)*(cv.width/r.width),y:(t.clientY-r.top)*(cv.height/r.height)};};
+    const st=e=>{S.current.drawing=true;S.current.prev=pos(e);e.preventDefault();};
+    const mv=e=>{if(!S.current.drawing)return;const p=pos(e);
+      ctx.strokeStyle=S.current.erase?background:S.current.color;
+      ctx.lineWidth=S.current.erase?eraserWidth:penWidth;
+      ctx.beginPath();ctx.moveTo(S.current.prev.x,S.current.prev.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+      S.current.prev=p;e.preventDefault();};
+    const en=()=>{if(S.current.drawing){S.current.drawing=false;onChange?.(cv.toDataURL("image/png"));}};
+    cv.addEventListener("mousedown",st);cv.addEventListener("mousemove",mv);window.addEventListener("mouseup",en);
+    cv.addEventListener("touchstart",st,{passive:false});cv.addEventListener("touchmove",mv,{passive:false});cv.addEventListener("touchend",en);
+    return()=>{
+      cv.removeEventListener("mousedown",st);cv.removeEventListener("mousemove",mv);window.removeEventListener("mouseup",en);
+      cv.removeEventListener("touchstart",st);cv.removeEventListener("touchmove",mv);cv.removeEventListener("touchend",en);
+    };
+  },[]); // eslint-disable-line
+  const clear=useCallback(()=>{
+    const cv=canvasRef.current; if(!cv)return;
+    const ctx=cv.getContext("2d");
+    ctx.fillStyle=background; ctx.fillRect(0,0,cv.width,cv.height);
+    onChange?.(null);
+  },[background,onChange]);
+  return {color,setColor,erase,setErase,clear};
+}
+
+function useCamera({videoRef}){
+  const [on,setOn]=useState(false);
+  const [error,setError]=useState(null);
+  const streamRef=useRef(null);
+  const stop=useCallback(()=>{
+    if(streamRef.current){streamRef.current.getTracks().forEach(t=>t.stop());streamRef.current=null;}
+    setOn(false);
+  },[]);
+  const toggle=useCallback(async()=>{
+    if(streamRef.current){stop();return;}
+    try{
+      const s=await navigator.mediaDevices.getUserMedia({video:true});
+      streamRef.current=s; setOn(true); setError(null);
+      requestAnimationFrame(()=>{if(videoRef.current)videoRef.current.srcObject=s;});
+    }catch(e){setError(e);}
+  },[stop,videoRef]);
+  useEffect(()=>stop,[stop]);
+  return {on,error,toggle,stop};
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ▼▼▼  UI 層(Neo Brutalism / Retro Pop,依設計圖 PDF)  ▼▼▼
+   ═══════════════════════════════════════════════════════════════════ */
+const LR = new Proxy(window.LucideReact || {}, { get:(t,n)=> t[n] || (()=>null) });
+const {
+  Heart, Bomb, Play, MousePointer2, Signal, Wifi, BatteryMedium, Smile,
+  ArrowLeft, ArrowRight, Volume2, Languages, Send, X, Users, Ear,
+  Footprints, Pencil, CircleDashed, Eye, Brain, HandHeart, ZoomIn,
+  Camera, CameraOff, Eraser, Trash2, RotateCcw, Download, Siren, Zap,
+  MessageCircle, ImageIcon, Sparkles,
+} = LR;
+
+/* ═══ 設計 token:三階層的框線/陰影,讓主次分明(原本全站一律 border-4 + 6px 影) ═══
+   L1 主角(主要按鈕、大卡片,見 BTN / CARD) / L2 次要(選項卡、提示泡泡) / L3 內部小元件(徽章、色票、工具列) */
+const L2 = "border-[3px] border-black shadow-[4px_4px_0px_0px_#000]";
+const L3 = "border-2 border-black shadow-[2px_2px_0px_0px_#000]";
+
+/* 按鈕/卡片共用樣式(粗黑框 + 實體陰影) */
+const BTN = "inline-flex items-center justify-center gap-2 border-4 border-black rounded-xl font-black " +
+  "shadow-[6px_6px_0px_0px_#000] transition-[transform,box-shadow,background-color] duration-150 ease-out " +
+  "hover:-translate-y-0.5 hover:shadow-[8px_8px_0px_0px_#000] " +
+  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none select-none cursor-pointer " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-navy/45 focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
+/* 次要按鈕:框線與陰影收一階,不跟主按鈕搶 */
+const BTN2 = "inline-flex items-center justify-center gap-2 border-[3px] border-black rounded-xl font-black " +
+  "shadow-[4px_4px_0px_0px_#000] transition-[transform,box-shadow,background-color] duration-150 ease-out " +
+  "hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#000] " +
+  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none select-none cursor-pointer " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-navy/45 focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
+const CARD  = "border-4 border-black rounded-2xl shadow-[6px_6px_0px_0px_#000] bg-white";
+const CARD2 = "border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] bg-white";
+
+/* ═══ 字級階梯(取代到處散落的 text-xl/2xl/font-black 組合) ═══ */
+const T = {
+  h1:   "text-5xl md:text-7xl font-black leading-[1.08]",
+  h2:   "text-2xl md:text-3xl font-black leading-[1.5]",
+  h3:   "text-xl md:text-2xl font-black leading-[1.55]",
+  lead: "lead text-lg md:text-xl font-bold leading-[1.85]",
+  body: "text-base md:text-lg font-bold leading-[1.85]",
+  cap:  "text-sm font-bold leading-[1.7] text-ink/55",
+};
+
+/* 注音/中文/英文 文字渲染:r.mode==="ruby" → <ruby>字<rt>注音</rt></ruby> */
+function RubyText({g, k, pair, rt}){
+  const r = g.render(pair || k);
+  if (r.mode === "plain") return <>{r.text}</>;
+  return <>{r.units.map((u,i)=> u.z
+    ? <ruby key={i}>{u.c}<rt className={rt}>{u.z}</rt></ruby>
+    : <span key={i}>{u.c}</span>)}</>;
+}
+
+/* 可點擊發音的文字(點一下播放語音) */
+function Speakable({g, k, pair, className=""}){
+  return (
+    <span className={"group cursor-pointer select-none "+className}
+      title="點一下播放語音" onClick={()=>g.say(pair || k)}>
+      <RubyText g={g} k={k} pair={pair}/>
+      <Volume2 className="inline-block ml-1 w-[0.8em] h-[0.8em] opacity-0 group-hover:opacity-60 transition-opacity"/>
+    </span>
+  );
+}
+
+/* 多段組合問句(整句點擊發音;em 段用橘色強調) */
+function QLine({g, parts, className=""}){
+  const txt = parts.map(p=>textOf(g.lang, p.pair || STR[p.k])).join("");
+  return (
+    <span className={"group cursor-pointer select-none "+className}
+      title="點一下播放語音" onClick={()=>speak(g.lang, txt)}>
+      {parts.map((p,i)=>(
+        <span key={i} className={p.em ? "text-tang underline decoration-4 decoration-mango underline-offset-4" : ""}>
+          <RubyText g={g} k={p.k} pair={p.pair}/>
+        </span>
+      ))}
+      <Volume2 className="inline-block ml-1 w-[0.8em] h-[0.8em] opacity-0 group-hover:opacity-60 transition-opacity"/>
+    </span>
+  );
+}
+
+/* 「其他」自由輸入列 */
+function OtherInput({g, phKey, onSubmit, onCancel}){
+  const [v,setV]=useState("");
+  const submit=()=>{ if(onSubmit(v)) setV(""); };
+  return (
+    <div className="flex w-full items-stretch gap-2 animate-[popIn_.3s_both]">
+      <input autoFocus value={v} onChange={e=>setV(e.target.value)}
+        onKeyDown={e=>{if(e.key==="Enter")submit();}}
+        placeholder={g.text(phKey)}
+        className="min-w-0 flex-1 border-4 border-black rounded-xl bg-white px-4 py-2 text-lg font-bold shadow-[4px_4px_0px_0px_#000] placeholder:text-ink/40 focus:outline-none focus:bg-creamy"/>
+      <button className={BTN+" bg-teal text-white px-4 py-2 text-lg"} onClick={submit}>
+        <Send size={18}/><RubyText g={g} k="send"/>
+      </button>
+      <button className={BTN+" bg-white px-3"} onClick={onCancel} aria-label="取消"><X size={20}/></button>
+    </div>
+  );
+}
+
+/* 圖像佔位框(人物/炸彈/插圖一律用佔位符,不用 SVG 硬刻) */
+function Placeholder({label, className="", icon:Ic=ImageIcon}){
+  return (
+    <div className={"flex flex-col items-center justify-center gap-2 border-[3px] border-dashed border-black/25 rounded-xl text-ink/40 font-bold text-center p-3 "+className}>
+      <Ic size={40} className="opacity-35"/>
+      <span className="text-sm leading-snug">{label}</span>
+    </div>
+  );
+}
+
+/* 場景插圖:統一的容器(單層粗框、無白底方框、邊緣柔化) */
+function Illo({src, alt, className="", imgClassName="", tone="bg-sand", children}){
+  return (
+    <div className={"illo-wrap "+tone+" "+className}>
+      <img src={"defuser-img/"+src+".jpg"} alt={alt} decoding="async"
+        className={"illo "+imgClassName}/>
+      {children}
+    </div>
+  );
+}
+
+/* 語言切換:三格一體的分段控制,比三顆獨立藥丸乾淨 */
+function LangSwitch({g, size="sm"}){
+  const langs=[["zy","注音"],["zh","中文"],["en","EN"]];
+  const pad = size==="lg" ? "px-4 py-1.5 text-base" : "px-3 py-1 text-sm";
+  return (
+    <div className={"flex items-center overflow-hidden rounded-full "+L3+" bg-white"}>
+      {langs.map(([k,label],i)=>(
+        <button key={k} onClick={()=>g.setLang(k)}
+          className={"font-black transition-colors "+pad+
+            (i>0?" border-l-2 border-black":"")+
+            (g.lang===k?" bg-navy text-white":" hover:bg-lemon")}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─── HUD:三顆愛心 + 拆彈進度條 + 語言切換(類遊戲介面) ─── */
+function Hud({g}){
+  return (
+    <header className="sticky top-0 z-40 border-b-4 border-black bg-paper/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
+        <div className="hidden shrink-0 items-center gap-1.5 text-base font-black sm:flex">
+          <Bomb size={20} className="shrink-0"/>
+          <span className="whitespace-nowrap">{g.text("title")}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {[0,1,2].map(i=><Heart key={i} size={18} className="text-black" fill="#DD3A31"/>)}
+        </div>
+        {/* 進度條:炸彈跟著進度往前跑,取代原本固定在旁邊的第二顆炸彈 */}
+        <div className="relative flex h-4 flex-1 items-center rounded-full border-2 border-black bg-white">
+          <div className="h-full rounded-full bg-teal transition-[width] duration-700 ease-out"
+            style={{width:g.progress+"%"}}/>
+          <Bomb size={18}
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rotate-12 text-ink transition-[left] duration-700 ease-out"
+            style={{left:"calc("+g.progress+"% )"}}/>
+        </div>
+        <LangSwitch g={g}/>
+      </div>
+    </header>
+  );
+}
+
+/* ─── 底部導覽:上一步 / 下一步(每頁都有) ─── */
+function NavBar({g}){
+  const flow=FLOW[g.screen]||{};
+  const canNext={comic:true,mission:true,
+    step1:!!g.answers.emotion, step1b:true,
+    step2:!!g.answers.need, step3:g.answers.resp!=null, resp:true}[g.screen];
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-4 pt-10
+                    bg-gradient-to-t from-paper via-paper/85 to-transparent">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4">
+        <div className="pointer-events-auto">
+          {flow.back &&
+            <button className={BTN2+" bg-white px-4 py-2 text-base"} onClick={g.back}>
+              <ArrowLeft size={18}/><RubyText g={g} k="back"/>
+            </button>}
+        </div>
+        <div className="pointer-events-auto">
+          {flow.next && g.screen!=="start" &&
+            <button onClick={g.next} disabled={!canNext}
+              title={canNext?"":"先做出選擇才能繼續"}
+              className={BTN+" bg-mango px-5 py-2.5 text-lg "+
+                (!canNext?"cursor-not-allowed opacity-35 saturate-50 shadow-[3px_3px_0px_0px_#000] hover:translate-y-0 hover:shadow-[3px_3px_0px_0px_#000]":"")}>
+              <RubyText g={g} k="next"/><ArrowRight size={20}/>
+            </button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 步驟進場字卡 splash(先只出現文字,再進入頁面) ─── */
+function Splash({g}){
+  const s=g.splash;
+  const Ic={1:Eye,2:Brain,3:HandHeart}[s.n];
+  return (
+    <div className={"fixed inset-0 z-50 flex items-center justify-center bg-paper/92 "+
+      (s.out?"animate-[splashOut_.4s_ease-in_both]":"animate-[overlayIn_.2s_ease-out_both]")}
+      style={{willChange:"opacity"}}>
+      <div className={"-rotate-2 rounded-2xl border-4 border-black bg-lemon px-10 py-8 text-center shadow-[10px_10px_0px_0px_#000] md:px-16 md:py-12 "+
+        (s.out?"":"animate-[splashIn_.4s_cubic-bezier(.25,1.25,.5,1)_both]")}
+        style={{willChange:"transform,opacity"}}>
+        {/* 步驟序號:三步驟中的第幾步,一眼看得出進度 */}
+        <div className="mb-4 flex items-center justify-center gap-2">
+          {[1,2,3].map(n=>(
+            <span key={n} className={"h-2.5 rounded-full border-2 border-black transition-all "+
+              (n===s.n?"w-10 bg-tang":"w-2.5 bg-white")}/>
+          ))}
+        </div>
+        <Ic size={56} className="mx-auto mb-3" strokeWidth={2.2}/>
+        <div className="text-4xl font-black md:text-6xl">
+          <RubyText g={g} k={"step"+s.n}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 1. 起始頁(像素遊戲介面感,依設計圖 p.4) ─── */
+function StartScreen({g}){
+  return (
+    <div className="relative mx-auto flex min-h-[88vh] max-w-5xl flex-col items-center justify-center px-4 py-10">
+      {/* 遊戲介面裝飾:左上訊號/電量、右上五顆愛心(壓低對比,不搶標題) */}
+      <div className="absolute left-4 top-5 flex items-center gap-2 text-ink/35">
+        <Signal size={22}/><Wifi size={22}/><BatteryMedium size={26}/>
+      </div>
+      <div className="absolute right-4 top-5 flex items-center gap-1">
+        {[0,1,2,3,4].map(i=>(
+          <Heart key={i} size={22} className="text-black" fill="#DD3A31"
+            style={{animation:`blinky 2.4s ${i*0.25}s infinite`}}/>
+        ))}
+      </div>
+
+      {/* 復古表情列 */}
+      <div className="mb-7 flex items-center gap-2.5 animate-[fadeUp_.5s_both]">
+        {[0,1,2,3].map(i=>(
+          <span key={i} className={"rounded-full border-2 border-black p-1.5 "+(i%2?"bg-white text-teal":"bg-teal text-white")}>
+            <Smile size={24}/>
+          </span>
+        ))}
+      </div>
+
+      {/* 大標題:紅字 + 橘色錯位陰影,兩側炸彈 */}
+      <div className="flex items-end gap-3 md:gap-7">
+        <Bomb size={52} className="shrink-0 text-ink" style={{animation:"floaty 3.2s ease-in-out infinite"}}/>
+        <h1 className={"cursor-pointer select-none text-center text-tomato "+T.h1}
+          style={{textShadow:"4px 4px 0 #FDAB3C, 8px 8px 0 rgba(33,26,18,.16)"}}
+          title="點一下播放語音" onClick={()=>g.say("title")}>
+          <RubyText g={g} k="title"/>
+        </h1>
+        <Bomb size={52} className="shrink-0 scale-x-[-1] text-ink" style={{animation:"floaty 3.2s .6s ease-in-out infinite"}}/>
+      </div>
+      {g.lang!=="en" &&
+        <div className="mt-4 text-xl font-black tracking-[.34em] text-navy/85 md:text-2xl">EMOTION DEFUSER</div>}
+
+      <p className={"mt-5 text-center text-ink/75 "+T.lead}>
+        <Speakable g={g} k="subtitle"/>
+      </p>
+
+      {/* 語言切換 */}
+      <div className="mt-7">
+        <LangSwitch g={g} size="lg"/>
+      </div>
+
+      {/* START */}
+      <div className="relative mt-9">
+        <button onClick={g.next}
+          className={BTN+" rounded-2xl bg-tang px-12 py-5 text-4xl tracking-[.25em] text-white shadow-[10px_10px_0px_0px_#000] hover:shadow-[13px_13px_0px_0px_#000] animate-[popIn_.5s_.25s_both]"}>
+          <Play size={32} fill="currentColor"/>START
+        </button>
+        <MousePointer2 size={32} className="pointer-events-none absolute -bottom-5 -right-6 rotate-[-8deg] text-ink" fill="#FDAB3C"/>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 2. 前導四格漫畫(一格一格出現) ─── */
+function ComicScreen({g}){
+  /* 四格底色統一成同一個暖調(讓四張插圖看起來是同一套),序號徽章才負責區隔 */
+  const panels=[
+    {k:"c1", img:"comic1", badge:"bg-tomato", note:"身邊潛在的情緒炸彈"},
+    {k:"c2", img:"comic2", badge:"bg-tang",   note:"朋友、同學、老師"},
+    {k:"c3", img:"comic3", badge:"bg-mango",  note:"情緒炸彈爆炸了"},
+    {k:"c4", img:"comic4", badge:"bg-teal",   note:"學習拆解情緒炸彈"},
+  ];
+  const STAGGER=0.45;
+  return (
+    <div className="mx-auto max-w-5xl px-4 pt-6">
+      <div className="grid gap-5 md:grid-cols-2">
+        {panels.map((p,i)=>(
+          <div key={p.k} className={CARD+" overflow-hidden animate-[popIn_.45s_both]"}
+            style={{animationDelay:(i*STAGGER)+"s"}}>
+            {/* 插圖直接貼齊卡片上緣:去掉內層白框與留白,不再有「圖貼在方框裡」的感覺 */}
+            {/* aspect 對齊插圖原始比例 800×500,不做任意裁切 */}
+            <Illo src={p.img} alt={p.note} tone="bg-sand"
+              className="relative aspect-[8/5] border-b-4 border-black">
+              <span className={"absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full text-lg font-black text-white "+L3+" "+p.badge}>
+                {i+1}
+              </span>
+            </Illo>
+            <p className={"p-4 "+T.lead}>
+              <Speakable g={g} k={p.k}/>
+            </p>
+          </div>
+        ))}
+      </div>
+      {/* 你準備好了嗎?(四格跑完才出現) */}
+      <div className="mt-8 flex justify-center animate-[fadeUp_.5s_both]"
+        style={{animationDelay:(panels.length*STAGGER+0.35)+"s"}}>
+        <button onClick={g.next} className={BTN+" bg-tomato px-8 py-4 text-2xl text-white md:text-3xl"}>
+          <Sparkles size={26}/><RubyText g={g} k="ready"/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 3. 任務頁 ─── */
+function MissionScreen({g}){
+  return (
+    <div className="mx-auto max-w-4xl px-4 pt-6">
+      {/* 警報條:晃動幅度收小,避免文字讀起來暈 */}
+      <div className={CARD+" flex items-center gap-3 bg-tomato p-4 text-white animate-[wiggle_2.6s_ease-in-out_infinite]"}>
+        <Siren size={32} className="shrink-0"/>
+        <h2 className={T.h2}><Speakable g={g} k="mTitle"/></h2>
+      </div>
+
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        {[
+          {k:"m1", note:"運動比賽輸了", img:"mission1"},
+          {k:"m2", note:"失落地坐在位子上", img:"mission2"},
+        ].map((p,i)=>(
+          <div key={p.k} className={CARD+" overflow-hidden animate-[popIn_.45s_both]"} style={{animationDelay:(i*0.35)+"s"}}>
+            <Illo src={p.img} alt={p.note} tone="bg-sand" className="aspect-[8/5] border-b-4 border-black"/>
+            <p className={"p-4 "+T.lead}><Speakable g={g} k={p.k}/></p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 flex flex-col items-center gap-5 animate-[fadeUp_.5s_.9s_both]">
+        <p className={"text-center "+T.h2}><Speakable g={g} k="mQ"/></p>
+        <button onClick={g.next} className={BTN+" bg-mango px-8 py-3.5 text-2xl"}>
+          <RubyText g={g} k="next"/><ArrowRight size={24}/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 4. Step 1 觀察:熱區 + 情緒選擇 ─── */
+function Step1Screen({g}){
+  const [hov,setHov]=useState(null);
+  const [otherOpen,setOtherOpen]=useState(false);
+  const [pressed,setPressed]=useState(null); /* 按壓高亮只存在本頁,返回時自動復原 */
+  const hovSpot=HOTSPOTS.find(h=>h.id===hov);
+  return (
+    <div className="mx-auto max-w-4xl px-4 pt-6">
+      <div className={CARD+" bg-creamy p-4"}>
+        <p className={T.h3}><Speakable g={g} k="s1Q"/></p>
+        <p className={"mt-1.5 flex items-center gap-1.5 "+T.cap}>
+          <MousePointer2 size={16} className="shrink-0"/><Speakable g={g} k="s1Hint"/>
+        </p>
+      </div>
+
+      {/* 觀察場景(熱區為透明層,靠微弱的呼吸光點提示可以摸哪裡) */}
+      <div className="relative mt-5 aspect-[16/10] overflow-hidden rounded-2xl border-4 border-black bg-sand shadow-[6px_6px_0px_0px_#000]">
+        <div className="absolute inset-x-0 top-0 h-[46%] border-b-4 border-black bg-board"/>
+        <div className="absolute inset-x-0 bottom-0 h-[18%] bg-cocoa/50"/>
+        {/* 上移讓眉/眼/嘴/托腮的手對齊 HOTSPOTS 熱區座標 */}
+        <img src="defuser-img/step1.jpg" alt="失落的同學坐在位子上" decoding="async"
+          className="illo absolute inset-0 -translate-y-[8%]"/>
+        {/* 手部熱區左右重複,只保留一個(handL);框框拿掉,熱區改為隱形透明層 */}
+        {HOTSPOTS.filter(h=>h.id!=="handR").map((h,i)=>(
+          <div key={h.id}
+            className={"group absolute cursor-help rounded-xl transition-colors duration-200 "+
+              (hov===h.id?"bg-white/15":"hover:bg-white/12")}
+            style={{left:h.x+"%",top:h.y+"%",width:h.w+"%",height:h.h+"%"}}
+            onMouseEnter={()=>setHov(h.id)} onMouseLeave={()=>setHov(null)}
+            onClick={()=>{ if(h.kind==="tip") g.say(h.strKey); }}>
+            {/* 呼吸光點:告訴小朋友這裡可以摸,滑到就消失 */}
+            <span className="pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2
+                             rounded-full bg-lemon ring-2 ring-black/45 group-hover:opacity-0"
+              style={{animation:`breathe 2.6s ${i*0.4}s ease-in-out infinite`}}/>
+          </div>
+        ))}
+        {/* 提示氣泡 / 眼睛放大鏡 */}
+        {hovSpot && hovSpot.kind==="tip" && (
+          <div className={"pointer-events-none absolute z-20 w-64 -translate-x-1/2 animate-[popIn_.22s_both] rounded-xl bg-white p-3 text-base font-bold leading-[1.8] "+L2}
+            style={{left:Math.min(Math.max(hovSpot.x+hovSpot.w/2,18),82)+"%", top:(hovSpot.y+hovSpot.h+2)+"%"}}>
+            <RubyText g={g} k={hovSpot.strKey}/>
+          </div>
+        )}
+        {hovSpot && hovSpot.kind==="lens" && (
+          <div className="pointer-events-none absolute z-20 animate-[popIn_.22s_both]"
+            style={{left:(hovSpot.x+hovSpot.w-1)+"%", top:(hovSpot.y-10)+"%"}}>
+            <div className={"relative w-60 rounded-xl bg-white p-2 "+L2}>
+              <div className="h-28 w-full rounded-lg border-2 border-black"
+                style={{backgroundImage:"url('defuser-img/step1.jpg')", backgroundSize:"460%", backgroundPosition:"50% 36%"}}/>
+              <ZoomIn size={18} className="absolute bottom-3 right-3 rounded-full border-2 border-black bg-lemon p-0.5"/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 情緒選擇列 */}
+      <div className={CARD+" mt-5 bg-white p-4"}>
+        <p className={"mb-3 "+T.h3}><Speakable g={g} k="s1Me"/></p>
+        {!otherOpen ? (
+          <div className="flex flex-wrap gap-3">
+            {EMO_KEYS.map(k=>(
+              <button key={k} onClick={()=>{setPressed(k);g.pickEmotion(k);}}
+                aria-pressed={pressed===k}
+                className={BTN2+" px-5 py-2.5 text-xl md:text-2xl "+
+                  (pressed===k?"picked bg-mango ring-2 ring-black":"bg-white hover:bg-creamy")}>
+                <RubyText g={g} pair={EMO[k]}/>
+              </button>
+            ))}
+            <button onClick={()=>setOtherOpen(true)} className={BTN2+" bg-white px-5 py-2.5 text-xl hover:bg-creamy md:text-2xl"}>
+              <Pencil size={20}/><RubyText g={g} k="other"/>
+            </button>
+          </div>
+        ) : (
+          <OtherInput g={g} phKey="s1Ph"
+            onSubmit={t=>g.pickEmotionOther(t)}
+            onCancel={()=>setOtherOpen(false)}/>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── 5. Step 1b 照鏡子 + 畫表情 ─── */
+function Step1bScreen({g}){
+  const videoRef=useRef(null);
+  const canvasRef=useRef(null);
+  const cam=useCamera({videoRef});
+  const pad=useDrawingPad({canvasRef, initialImage:g.answers.draw, onChange:g.setDrawing});
+  const ans=g.answers;
+  const emoPair = ans.emotion==="other"
+    ? {zh:ans.emotionText, en:ans.emotionText}
+    : (ans.emotion ? EMO[ans.emotion] : {zh:"…",en:"…"});
+  const PALETTE=["#211A12","#DD3A31","#F56B25","#FDAB3C","#109A91","#6BC6E6","#FA9EB7","#0F0F6D"];
+  return (
+    <div className="mx-auto max-w-5xl px-4 pt-6">
+      {/* 句子:s1bA + 所選情緒 + s1bB + s1bC */}
+      <div className={CARD+" bg-creamy p-4"}>
+        <p className={T.h3}>
+          <QLine g={g} parts={[
+            {k:"s1bA"},
+            {pair:emoPair, em:true},
+            {k:"s1bB"},
+            {k:"s1bC"},
+          ]}/>
+        </p>
+      </div>
+
+      {/* 深色容器:左鏡頭、右畫板(設計圖 p.8) */}
+      <div className="mt-5 rounded-2xl border-4 border-black bg-[#33302B] p-5 shadow-[8px_8px_0px_0px_#000] md:p-7">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* 鏡頭 */}
+          <div className="flex flex-col items-center gap-3">
+            <h3 className="text-lg font-black text-creamy md:text-xl"><Speakable g={g} k="camCap"/></h3>
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border-[3px] border-black bg-paper">
+              <video ref={videoRef} autoPlay playsInline muted
+                className={"h-full w-full -scale-x-100 object-cover "+(cam.on?"":"hidden")}/>
+              {!cam.on && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ink/35">
+                  <Camera size={52} className="opacity-40"/>
+                  <span className="text-sm font-bold">按下方按鈕打開鏡頭</span>
+                </div>
+              )}
+            </div>
+            <button onClick={cam.toggle}
+              className={BTN2+" px-5 py-2.5 text-lg "+(cam.on?"bg-tomato text-white":"bg-skyy")}>
+              {cam.on?<CameraOff size={20}/>:<Camera size={20}/>}
+              <RubyText g={g} k={cam.on?"camOff":"camOn"}/>
+            </button>
+            {cam.error && <p className="text-center text-sm font-bold leading-relaxed text-blush">⚠ 無法開啟鏡頭(需要 https 或 localhost,並允許權限)</p>}
+          </div>
+
+          {/* 畫板 */}
+          <div className="flex flex-col items-center gap-3">
+            <h3 className="text-lg font-black text-creamy md:text-xl"><Speakable g={g} k="drawCap"/></h3>
+            <canvas ref={canvasRef} width={480} height={360}
+              className="pad aspect-[4/3] w-full cursor-crosshair rounded-xl border-[3px] border-black bg-white"/>
+            {/* 畫布下方:不同顏色畫筆 + 橡皮擦 + 全部清除 */}
+            <div className={"flex w-full flex-wrap items-center justify-center gap-2 rounded-xl bg-paper p-2.5 "+L2}>
+              {PALETTE.map(c=>(
+                <button key={c} aria-label={"畫筆 "+c} aria-pressed={pad.color===c && !pad.erase}
+                  onClick={()=>{pad.setColor(c);pad.setErase(false);}}
+                  className={"h-7 w-7 rounded-full border-2 border-black transition-transform duration-150 "+
+                    (pad.color===c && !pad.erase ? "scale-125 ring-2 ring-black ring-offset-2 ring-offset-paper":"hover:scale-110")}
+                  style={{background:c}}/>
+              ))}
+              <span className="mx-1 h-7 w-0.5 rounded bg-black/20"/>
+              <button onClick={()=>pad.setErase(!pad.erase)} aria-pressed={pad.erase}
+                className={BTN2+" rounded-lg px-3 py-1.5 text-sm shadow-[3px_3px_0px_0px_#000] "+(pad.erase?"bg-mango":"bg-white")}>
+                <Eraser size={16}/><RubyText g={g} k="eraser"/>
+              </button>
+              <button onClick={pad.clear}
+                className={BTN2+" rounded-lg bg-white px-3 py-1.5 text-sm shadow-[3px_3px_0px_0px_#000]"}>
+                <Trash2 size={16}/><RubyText g={g} k="clearAll"/>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="mt-5 text-center text-base font-black leading-[1.8] text-creamy/90 md:text-lg">
+          <Speakable g={g} k="s1bHint"/>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 6/7. Step 2 思考、Step 3 行動:黑板 + 2×2 選項卡 ─── */
+function ChoiceScreen({g, kind}){
+  const [otherOpen,setOtherOpen]=useState(false);
+  const [pressed,setPressed]=useState(null); /* 按壓高亮只存在本頁,返回時自動復原 */
+  const isNeed = kind==="need";
+  const parts = isNeed
+    ? [{k:"s2Qa"},{k:"s2Qb",em:true},{k:"s2Qc"}]
+    : [{k:"s3Qa"},{k:"s3Qb",em:true},{k:"s3Qc"}];
+  const ICONS={space:CircleDashed, listen:Ear, walk:Footprints};
+  const pick = k => { setPressed(k); (isNeed ? g.pickNeed(k) : g.pickAction(k)); };
+  const pickOther = t => isNeed ? g.pickNeedOther(t) : g.pickActionOther(t);
+  return (
+    <div className="mx-auto max-w-4xl px-4 pt-6">
+      <p className={"text-center "+T.h2}>
+        <QLine g={g} parts={parts}/>
+      </p>
+
+      {/* 黑板 */}
+      <div className="mt-5 rounded-2xl border-4 border-black bg-board p-5 shadow-[6px_6px_0px_0px_#000] md:p-8">
+        <div className="grid gap-5 sm:grid-cols-2">
+          {CHOICES[kind].map((c,i)=>{
+            const Ic=ICONS[c.key]||Pencil;
+            const on = pressed===c.key;
+            return (
+              <button key={c.key} onClick={()=>pick(c.key)} aria-pressed={on}
+                className={CARD2+" flex flex-col items-center gap-3 p-5 text-center transition-[transform,box-shadow,background-color] duration-150 ease-out hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_#000] active:translate-y-1 active:shadow-none "+
+                  (on?"picked bg-lemon ring-2 ring-black":"bg-white")}>
+                <span className={"rounded-xl border-2 border-black p-3 transition-colors "+(on?"bg-mango":"bg-sand")}>
+                  <Ic size={32}/>
+                </span>
+                <span className={T.h3}><RubyText g={g} k={c.strKey}/></span>
+              </button>
+            );
+          })}
+          {/* 其他 */}
+          {!otherOpen ? (
+            <button onClick={()=>setOtherOpen(true)}
+              className={CARD2+" flex flex-col items-center gap-3 bg-white p-5 text-center transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-1 hover:shadow-[7px_7px_0px_0px_#000]"}>
+              <span className="rounded-xl border-2 border-black bg-sand p-3"><Pencil size={32}/></span>
+              <span className={T.h3}><RubyText g={g} k="other"/></span>
+            </button>
+          ) : (
+            <div className={CARD2+" flex items-center bg-white p-4 sm:col-span-1"}>
+              <OtherInput g={g} phKey={isNeed?"s2Ph":"s3Ph"}
+                onSubmit={pickOther} onCancel={()=>setOtherOpen(false)}/>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* 粉筆溝 */}
+      <div className="mx-8 h-3.5 rounded-b-xl border-[3px] border-t-0 border-black bg-cocoa"/>
+    </div>
+  );
+}
+
+/* ─── 8. 同學回應 ─── */
+function RespScreen({g}){
+  const rk=g.respKey;
+  return (
+    <div className="mx-auto max-w-4xl px-4 pt-6">
+      {/* 場景:平靜的同學(與 Step1 同角色) */}
+      <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border-4 border-black bg-sand shadow-[6px_6px_0px_0px_#000]">
+        <div className="absolute inset-x-0 top-0 h-1/2 border-b-4 border-black bg-board"/>
+        <Illo src="resp" alt="平靜下來的同學" tone="bg-transparent" className="absolute inset-0"/>
+      </div>
+
+      {/* 對話泡泡 */}
+      <div className="relative mx-auto -mt-8 max-w-2xl">
+        <div className={CARD+" relative bg-white p-6 animate-[popIn_.45s_.2s_both]"}>
+          <span className="absolute -top-3.5 left-12 h-7 w-7 rotate-45 border-l-4 border-t-4 border-black bg-white"/>
+          <MessageCircle size={20} className="absolute right-4 top-4 text-ink/25"/>
+          {rk
+            ? <p className={"pr-6 "+T.h2}><Speakable g={g} k={rk}/></p>
+            : <p className={T.lead+" text-ink/50"}>請先回上一步選擇你的行動喔!</p>}
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-end animate-[fadeUp_.5s_.9s_both]">
+        <button onClick={g.next} className={BTN+" bg-lemon px-6 py-3.5 text-xl md:text-2xl"}>
+          <Users size={24}/><RubyText g={g} k="peersBtn"/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 9. 結尾:黑板八泡泡 + 同理心愛心 ─── */
+const END_STAGGER = 0.32; /* 原本 0.5s×9 要等 4.5 秒才看得到按鈕,收緊節奏 */
+function EndScreen({g}){
+  return (
+    <div className="mx-auto max-w-5xl px-4 pt-6">
+      <div className="rounded-2xl border-4 border-black bg-board p-5 shadow-[6px_6px_0px_0px_#000] md:p-8">
+        <div className="grid gap-4 md:grid-cols-3">
+          {END_ORDER.map((k,i)=>{
+            if(k==="HEART") return (
+              <div key={k} className="flex flex-col items-center justify-center gap-1 animate-[popIn_.5s_both]"
+                style={{animationDelay:(i*END_STAGGER)+"s"}}>
+                <div className="relative">
+                  <Heart size={150} strokeWidth={1.4} className="text-black drop-shadow-[5px_5px_0px_rgba(0,0,0,.5)]" fill="#F56B25"/>
+                  <span className="absolute inset-0 flex items-center justify-center pb-3 text-2xl font-black leading-[1.4] text-white">
+                    <RubyText g={g} k="endHeart" rt="text-white"/>
+                  </span>
+                </div>
+                <p className="text-base font-black text-white md:text-lg"><Speakable g={g} k="endSteps"/></p>
+              </div>
+            );
+            return (
+              <div key={k} className={"rounded-xl bg-[#EDF6EE] p-4 animate-[popIn_.45s_both] "+L3}
+                style={{animationDelay:(i*END_STAGGER)+"s"}}>
+                <p className="text-[15px] font-bold leading-[1.85]">
+                  <Speakable g={g} k={k}/>
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mx-8 h-3.5 rounded-b-xl border-[3px] border-t-0 border-black bg-cocoa"/>
+
+      {/* 再玩一次 / 下載我的答案(泡泡跑完才出現) */}
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-4 pb-10 animate-[fadeUp_.5s_both]"
+        style={{animationDelay:(END_ORDER.length*END_STAGGER+0.35)+"s"}}>
+        <button onClick={()=>g.download({fontFamily:"'Huninn','Noto Sans TC',sans-serif"})}
+          className={BTN+" bg-mango px-7 py-3.5 text-2xl"}>
+          <Download size={24}/><RubyText g={g} k="dl"/>
+        </button>
+        <button onClick={g.restart} className={BTN2+" bg-white px-6 py-3 text-xl"}>
+          <RotateCcw size={22}/><RubyText g={g} k="again"/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 主容器 ─── */
+const IMG_NAMES=["comic1","comic2","comic3","comic4","mission1","mission2","step1","resp"];
+function App(){
+  const g = useEmotionDefuser({initialLang:"zh"});
+  /* 一開始就預先載入+解碼所有插圖,避免換頁到同學圖時卡頓 */
+  useEffect(()=>{ IMG_NAMES.forEach(n=>{ const im=new Image(); im.src="defuser-img/"+n+".jpg"; }); },[]);
+  /* 換頁時回到卷軸最頂端 */
+  useEffect(()=>{ window.scrollTo({top:0, left:0, behavior:"instant"}); },[g.screen]);
+  const SCREENS = {
+    start:StartScreen, comic:ComicScreen, mission:MissionScreen,
+    step1:Step1Screen, step1b:Step1bScreen,
+    step2:()=> <ChoiceScreen g={g} kind="need"/>,
+    step3:()=> <ChoiceScreen g={g} kind="action"/>,
+    resp:RespScreen, end:EndScreen,
+  };
+  const Scr = SCREENS[g.screen];
+  /* 注音模式下段落行高要放鬆,直排注音才不會擠到上一行 */
+  return (
+    <div className={"min-h-screen "+(g.lang==="zy"?"zy-mode":"")}>
+      {g.screen!=="start" && <Hud g={g}/>}
+      {/* 過場:平滑下移 */}
+      <main key={g.screen} className="screen-in pb-28">
+        <Scr g={g}/>
+      </main>
+      {g.screen!=="start" && FLOW[g.screen] && <NavBar g={g}/>}
+      {g.splash && <Splash g={g}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

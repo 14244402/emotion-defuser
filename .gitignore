@@ -1,0 +1,14 @@
+# 開發歷程檔,不需要上線
+情緒拆彈隊.html
+情緒拆彈隊-精緻版.html
+拆彈專家.html
+拆彈專家_發布/
+*.backup-*.html
+
+# 工具設定
+.claude/
+
+# 系統檔
+Thumbs.db
+desktop.ini
+.DS_Store
