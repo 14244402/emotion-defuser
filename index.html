@@ -82,8 +82,6 @@ tailwind.config = {
   @keyframes blinky    { 0%,55% { opacity: 1; } 60%,100% { opacity: .2; } }
   /* 選中選項時的確認回饋 */
   @keyframes pickPop   { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
-  /* 熱區可點的呼吸提示(取代看得見的虛線框) */
-  @keyframes breathe   { 0%,100% { opacity: .0; } 50% { opacity: .35; } }
 
   .screen-in { animation: screenIn .4s cubic-bezier(.22,.7,.3,1) both; will-change: transform, opacity; }
   .picked    { animation: pickPop .3s cubic-bezier(.3,1.3,.5,1) both; }
@@ -225,6 +223,11 @@ const STR = {
   b6:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ生ㄕㄥ氣ㄑㄧˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ能ㄋㄥˊ開ㄎㄞ導ㄉㄠˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ老ㄌㄠˇ師ㄕ說ㄕㄨㄛ。",en:"If it were me, I'd feel angry. I'd want someone to guide me, so I'd talk to the teacher."},
   b7:{zh:"就ㄐㄧㄡˋ算ㄙㄨㄢˋ用ㄩㄥˋ自ㄗˋ己ㄐㄧˇ希ㄒㄧ望ㄨㄤˋ的˙ㄉㄜ方ㄈㄤ式ㄕˋ安ㄢ慰ㄨㄟˋ,別ㄅㄧㄝˊ人ㄖㄣˊ也ㄧㄝˇ不ㄅㄨˋ一ㄧ定ㄉㄧㄥˋ能ㄋㄥˊ接ㄐㄧㄝ受ㄕㄡˋ呢˙ㄋㄜ。",en:"Even if we comfort others the way WE like, they may not always accept it."},
   b8:{zh:"一ㄧ樣ㄧㄤˋ的˙ㄉㄜ選ㄒㄩㄢˇ擇ㄗㄜˊ背ㄅㄟˋ後ㄏㄡˋ也ㄧㄝˇ會ㄏㄨㄟˋ有ㄧㄡˇ不ㄅㄨˋ同ㄊㄨㄥˊ理ㄌㄧˇ由ㄧㄡˊ呢˙ㄋㄜ。",en:"The same choice can come from different reasons, too."},
+  /* 結尾的回顧問題(課堂討論用,不需作答) */
+  q0:{zh:"想ㄒㄧㄤˇ一ㄧ想ㄒㄧㄤˇ",en:"Think about it"},
+  q1:{zh:"玩ㄨㄢˊ完ㄨㄢˊ這ㄓㄜˋ個˙ㄍㄜ遊ㄧㄡˊ戲ㄒㄧˋ,你ㄋㄧˇ學ㄒㄩㄝˊ到ㄉㄠˋ了˙ㄌㄜ甚ㄕㄣˊ麼˙ㄇㄜ?",en:"What do you learn from the game?"},
+  q2:{zh:"最ㄗㄨㄟˋ後ㄏㄡˋ,你ㄋㄧˇ覺ㄐㄩㄝˊ得˙ㄉㄜ那ㄋㄚˋ個˙ㄍㄜ同ㄊㄨㄥˊ學ㄒㄩㄝˊ怎ㄗㄣˇ麼˙ㄇㄜ樣ㄧㄤˋ了˙ㄌㄜ?",en:"What do you think about the classmate in the end?"},
+  q3:{zh:"下ㄒㄧㄚˋ次ㄘˋ遇ㄩˋ到ㄉㄠˋ一ㄧ樣ㄧㄤˋ的˙ㄉㄜ情ㄑㄧㄥˊ況ㄎㄨㄤˋ,你ㄋㄧˇ還ㄏㄞˊ會ㄏㄨㄟˋ做ㄗㄨㄛˋ一ㄧ樣ㄧㄤˋ的˙ㄉㄜ選ㄒㄩㄢˇ擇ㄗㄜˊ嗎˙ㄇㄚ?",en:"Will you choose the same step next time?"},
   again:{zh:"再ㄗㄞˋ玩ㄨㄢˊ一ㄧ次ㄘˋ",en:"Play again"},
   dl:{zh:"下ㄒㄧㄚˋ載ㄗㄞˋ我ㄨㄛˇ的˙ㄉㄜ答ㄉㄚˊ案ㄢˋ",en:"Download my answers"},
   dlTitle:{zh:"情緒拆彈隊 — 我的答案",en:"Emotion Defuser — My Answers"},
@@ -922,18 +925,13 @@ function Step1Screen({g}){
         <img src="defuser-img/step1.jpg" alt="失落的同學坐在位子上" decoding="async"
           className="illo absolute inset-0 -translate-y-[8%]"/>
         {/* 手部熱區左右重複,只保留一個(handL);框框拿掉,熱區改為隱形透明層 */}
-        {HOTSPOTS.filter(h=>h.id!=="handR").map((h,i)=>(
+        {HOTSPOTS.filter(h=>h.id!=="handR").map(h=>(
           <div key={h.id}
-            className={"group absolute cursor-help rounded-xl transition-colors duration-200 "+
+            className={"absolute cursor-help rounded-xl transition-colors duration-200 "+
               (hov===h.id?"bg-white/15":"hover:bg-white/12")}
             style={{left:h.x+"%",top:h.y+"%",width:h.w+"%",height:h.h+"%"}}
             onMouseEnter={()=>setHov(h.id)} onMouseLeave={()=>setHov(null)}
-            onClick={()=>{ if(h.kind==="tip") g.say(h.strKey); }}>
-            {/* 呼吸光點:告訴小朋友這裡可以摸,滑到就消失 */}
-            <span className="pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2
-                             rounded-full bg-lemon ring-2 ring-black/45 group-hover:opacity-0"
-              style={{animation:`breathe 2.6s ${i*0.4}s ease-in-out infinite`}}/>
-          </div>
+            onClick={()=>{ if(h.kind==="tip") g.say(h.strKey); }}/>
         ))}
         {/* 提示氣泡 / 眼睛放大鏡 */}
         {hovSpot && hovSpot.kind==="tip" && (
@@ -1156,14 +1154,15 @@ function EndScreen({g}){
   return (
     <div className="mx-auto max-w-5xl px-4 pt-6">
       <div className="rounded-2xl border-4 border-black bg-board p-5 shadow-[6px_6px_0px_0px_#000] md:p-8">
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* items-start:讓每個泡泡保持自然高度,不被同一列最高的愛心撐開留白 */}
+        <div className="grid items-start gap-4 md:grid-cols-3">
           {END_ORDER.map((k,i)=>{
             if(k==="HEART") return (
-              <div key={k} className="flex flex-col items-center justify-center gap-1 animate-[popIn_.5s_both]"
+              <div key={k} className="flex flex-col items-center justify-center gap-1 self-center py-2 animate-[popIn_.5s_both]"
                 style={{animationDelay:(i*END_STAGGER)+"s"}}>
                 <div className="relative">
-                  <Heart size={150} strokeWidth={1.4} className="text-black drop-shadow-[5px_5px_0px_rgba(0,0,0,.5)]" fill="#F56B25"/>
-                  <span className="absolute inset-0 flex items-center justify-center pb-3 text-2xl font-black leading-[1.4] text-white">
+                  <Heart size={132} strokeWidth={1.4} className="text-black drop-shadow-[5px_5px_0px_rgba(0,0,0,.5)]" fill="#F56B25"/>
+                  <span className="absolute inset-0 flex items-center justify-center pb-2 text-xl font-black leading-[1.4] text-white">
                     <RubyText g={g} k="endHeart" rt="text-white"/>
                   </span>
                 </div>
@@ -1182,6 +1181,32 @@ function EndScreen({g}){
         </div>
       </div>
       <div className="mx-8 h-3.5 rounded-b-xl border-[3px] border-t-0 border-black bg-cocoa"/>
+
+      {/* ─── 想一想:課堂討論用的回顧問題(暖色框,和黑板上的同學留言區隔開) ─── */}
+      <div className="mt-8 animate-[fadeUp_.5s_both]"
+        style={{animationDelay:(END_ORDER.length*END_STAGGER+0.2)+"s"}}>
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <span className={"inline-flex items-center gap-2 rounded-full bg-lemon px-5 py-1.5 text-xl font-black "+L3}>
+            <Brain size={22}/><RubyText g={g} k="q0"/>
+          </span>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {k:"q1", bg:"bg-creamy", ic:Sparkles},
+            {k:"q2", bg:"bg-blush/45", ic:HandHeart},
+            {k:"q3", bg:"bg-skyy/45", ic:RotateCcw},
+          ].map(({k,bg,ic:Ic},i)=>(
+            <div key={k} className={CARD2+" flex gap-3 p-4 "+bg}>
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-black bg-white">
+                <Ic size={18}/>
+              </span>
+              <p className="text-[15px] font-bold leading-[1.85]">
+                <Speakable g={g} k={k}/>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* 再玩一次 / 下載我的答案(泡泡跑完才出現) */}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4 pb-10 animate-[fadeUp_.5s_both]"
