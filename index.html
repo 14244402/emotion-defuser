@@ -265,12 +265,14 @@ const CHOICES = {
 };
 
 /** Step 1 觀察熱區(關卡資料) */
+/* 熱區座標 = step1.jpg 上的百分比(圖 1586×992 = 8:5,容器 aspect-[16/10] 剛好同比例,
+   而且圖不再做垂直位移,所以兩者是 1:1 對應)。換圖時只要重新量這五組數字。 */
 const HOTSPOTS = [
-  {id:"brow",  kind:"tip",  strKey:"hpBrow",  x:36,y:26,w:28,h:9},
-  {id:"eye",   kind:"lens", strKey:null,      x:36,y:36,w:28,h:8},
-  {id:"mouth", kind:"tip",  strKey:"hpMouth", x:41,y:45,w:18,h:9},
-  {id:"handL", kind:"tip",  strKey:"hpHand",  x:21,y:52,w:17,h:18},
-  {id:"handR", kind:"tip",  strKey:"hpHand",  x:62,y:52,w:17,h:18},
+  {id:"brow",  kind:"tip",  strKey:"hpBrow",  x:44,y:34,w:14,h:7},
+  {id:"eye",   kind:"lens", strKey:null,      x:44,y:42,w:14,h:7},
+  {id:"mouth", kind:"tip",  strKey:"hpMouth", x:45,y:52,w:11,h:8},
+  {id:"handL", kind:"tip",  strKey:"hpHand",  x:35,y:47,w:9, h:15},
+  {id:"handR", kind:"tip",  strKey:"hpHand",  x:57,y:47,w:9, h:15},
 ];
 
 /** 結尾黑板泡泡的順序(HEART = 中央同理心愛心) */
@@ -989,9 +991,9 @@ function Step1Screen({g}){
       <div className="relative mt-5 aspect-[16/10] overflow-hidden rounded-2xl border-4 border-black bg-sand shadow-[6px_6px_0px_0px_#000]">
         <div className="absolute inset-x-0 top-0 h-[46%] border-b-4 border-black bg-board"/>
         <div className="absolute inset-x-0 bottom-0 h-[18%] bg-cocoa/50"/>
-        {/* 上移讓眉/眼/嘴/托腮的手對齊 HOTSPOTS 熱區座標 */}
+        {/* 圖與容器同為 8:5,不需位移,HOTSPOTS 直接用圖上的百分比 */}
         <img src="defuser-img/step1.jpg" alt="失落的同學坐在位子上" decoding="async"
-          className="illo absolute inset-0 -translate-y-[8%]"/>
+          className="illo absolute inset-0"/>
         {/* 手部熱區左右重複,只保留一個(handL);框框拿掉,熱區改為隱形透明層 */}
         {HOTSPOTS.filter(h=>h.id!=="handR").map(h=>(
           <div key={h.id}
@@ -1012,8 +1014,9 @@ function Step1Screen({g}){
           <div className="pointer-events-none absolute z-20 animate-[popIn_.22s_both]"
             style={{left:(hovSpot.x+hovSpot.w-1)+"%", top:(hovSpot.y-10)+"%"}}>
             <div className={"relative w-60 rounded-xl bg-white p-2 "+L2}>
+              {/* 放大鏡:對準新圖眼睛的位置(約 x51% / y45%) */}
               <div className="h-28 w-full rounded-lg border-2 border-black"
-                style={{backgroundImage:"url('defuser-img/step1.jpg')", backgroundSize:"460%", backgroundPosition:"50% 36%"}}/>
+                style={{backgroundImage:"url('defuser-img/step1.jpg')", backgroundSize:"460%", backgroundPosition:"51% 45%"}}/>
               <ZoomIn size={18} className="absolute bottom-3 right-3 rounded-full border-2 border-black bg-lemon p-0.5"/>
             </div>
           </div>

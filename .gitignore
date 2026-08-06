@@ -5,6 +5,12 @@
 拆彈專家_發布/
 *.backup-*.html
 
+# 插圖原始檔:一張 2.4MB,遊戲讀的是轉好的 jpg,不需要上傳
+defuser-img/*.png
+defuser-img/_舊圖備份/
+# OneDrive 同步時留下的暫存檔
+*.~tmp
+
 # 工具設定
 .claude/
 

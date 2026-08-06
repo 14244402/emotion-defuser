@@ -171,11 +171,11 @@ export const CHOICES = {
     - "tip"  → 顯示 STR[strKey] 氣泡並可發音
     - "lens" → 眼睛局部放大(UI 自行決定放大鏡呈現) */
 export const HOTSPOTS = [
-  {id:"brow",  kind:"tip",  strKey:"hpBrow",  x:36,y:26,w:28,h:9},
-  {id:"eye",   kind:"lens", strKey:null,      x:36,y:36,w:28,h:8},
-  {id:"mouth", kind:"tip",  strKey:"hpMouth", x:41,y:45,w:18,h:9},
-  {id:"handL", kind:"tip",  strKey:"hpHand",  x:21,y:52,w:17,h:18},
-  {id:"handR", kind:"tip",  strKey:"hpHand",  x:62,y:52,w:17,h:18},
+  {id:"brow",  kind:"tip",  strKey:"hpBrow",  x:44,y:34,w:14,h:7},
+  {id:"eye",   kind:"lens", strKey:null,      x:44,y:42,w:14,h:7},
+  {id:"mouth", kind:"tip",  strKey:"hpMouth", x:45,y:52,w:11,h:8},
+  {id:"handL", kind:"tip",  strKey:"hpHand",  x:35,y:47,w:9, h:15},
+  {id:"handR", kind:"tip",  strKey:"hpHand",  x:57,y:47,w:9, h:15},
 ];
 
 /** 結尾黑板泡泡的順序(HEART = 中央同理心愛心) */
