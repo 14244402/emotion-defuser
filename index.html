@@ -161,64 +161,67 @@ function segOf(lang, pair) {
 /* ═══════════ 2. 遊戲文案 + 關卡資料 ═══════════ */
 const STR = {
   title:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ",en:"Emotion Defuser"},
-  subtitle:{zh:"一ㄧ場ㄔㄤˇ關ㄍㄨㄢ於ㄩˊ同ㄊㄨㄥˊ理ㄌㄧˇ心ㄒㄧㄣ的˙ㄉㄜ小ㄒㄧㄠˇ任ㄖㄣˋ務ㄨˋ",en:"A small mission about empathy"},
+  subtitle:{zh:"一ㄧ場ㄔㄤˇ關ㄍㄨㄢ於ㄩˊ同ㄊㄨㄥˊ理ㄌㄧˇ心ㄒㄧㄣ的˙ㄉㄜ小ㄒㄧㄠˇ任ㄖㄣˋ務ㄨˋ",en:"An empathy mission"},
   back:{zh:"上ㄕㄤˋ一ㄧ步ㄅㄨˋ",en:"Back"},
   next:{zh:"下ㄒㄧㄚˋ一ㄧ步ㄅㄨˋ",en:"Next"},
   send:{zh:"送ㄙㄨㄥˋ出ㄔㄨ",en:"Submit"},
-  c1:{zh:"我ㄨㄛˇ們˙ㄇㄣ身ㄕㄣ邊ㄅㄧㄢ時ㄕˊ常ㄔㄤˊ會ㄏㄨㄟˋ出ㄔㄨ現ㄒㄧㄢˋ潛ㄑㄧㄢˊ在ㄗㄞˋ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"Emotion bombs often hide around us"},
-  c2:{zh:"像ㄒㄧㄤˋ是ㄕˋ朋ㄆㄥˊ友ㄧㄡˇ、同ㄊㄨㄥˊ學ㄒㄩㄝˊ、老ㄌㄠˇ師ㄕ",en:"Like friends, classmates, and teachers"},
-  c3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ沒ㄇㄟˊ有ㄧㄡˇ處ㄔㄨˇ理ㄌㄧˇ好ㄏㄠˇ的˙ㄉㄜ話ㄏㄨㄚˋ,可ㄎㄜˇ能ㄋㄥˊ會ㄏㄨㄟˋ爆ㄅㄠˋ炸ㄓㄚˋ!",en:"If we don't handle them well, they might explode!"},
-  c4:{zh:"因ㄧㄣ此ㄘˇ,為ㄨㄟˋ了˙ㄌㄜ日ㄖˋ常ㄔㄤˊ的˙ㄉㄜ和ㄏㄜˊ平ㄆㄧㄥˊ,我ㄨㄛˇ們˙ㄇㄣ需ㄒㄩ要ㄧㄠˋ學ㄒㄩㄝˊ習ㄒㄧˊ如ㄖㄨˊ何ㄏㄜˊ拆ㄔㄞ解ㄐㄧㄝˇ他ㄊㄚ人ㄖㄣˊ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"So, for everyday peace, let's learn how to defuse other people's emotion bombs"},
+  c1:{zh:"我ㄨㄛˇ們˙ㄇㄣ身ㄕㄣ邊ㄅㄧㄢ時ㄕˊ常ㄔㄤˊ會ㄏㄨㄟˋ出ㄔㄨ現ㄒㄧㄢˋ潛ㄑㄧㄢˊ在ㄗㄞˋ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"Emotion bombs are often around us"},
+  c2:{zh:"像ㄒㄧㄤˋ是ㄕˋ朋ㄆㄥˊ友ㄧㄡˇ、同ㄊㄨㄥˊ學ㄒㄩㄝˊ、老ㄌㄠˇ師ㄕ",en:"Such as friends, classmates, and teachers"},
+  c3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ沒ㄇㄟˊ有ㄧㄡˇ處ㄔㄨˇ理ㄌㄧˇ好ㄏㄠˇ的˙ㄉㄜ話ㄏㄨㄚˋ,可ㄎㄜˇ能ㄋㄥˊ會ㄏㄨㄟˋ爆ㄅㄠˋ炸ㄓㄚˋ!",en:"If we don't deal with them properly, they might explode!"},
+  c4:{zh:"因ㄧㄣ此ㄘˇ,為ㄨㄟˋ了˙ㄌㄜ日ㄖˋ常ㄔㄤˊ的˙ㄉㄜ和ㄏㄜˊ平ㄆㄧㄥˊ,我ㄨㄛˇ們˙ㄇㄣ需ㄒㄩ要ㄧㄠˋ學ㄒㄩㄝˊ習ㄒㄧˊ如ㄖㄨˊ何ㄏㄜˊ拆ㄔㄞ解ㄐㄧㄝˇ他ㄊㄚ人ㄖㄣˊ的˙ㄉㄜ情ㄑㄧㄥˊ緒ㄒㄩˋ炸ㄓㄚˋ彈ㄉㄢˋ",en:"Therefore, let's learn how to defuse others' emotion bombs and save our everyday peace"},
   ready:{zh:"你ㄋㄧˇ準ㄓㄨㄣˇ備ㄅㄟˋ好ㄏㄠˇ了˙ㄌㄜ嗎˙ㄇㄚ?",en:"Are you ready?"},
-  mTitle:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ收ㄕㄡ到ㄉㄠˋ了˙ㄌㄜ任ㄖㄣˋ務ㄨˋ!",en:"The Emotion Defuser squad has a mission!"},
-  m1:{zh:"你ㄋㄧˇ身ㄕㄣ邊ㄅㄧㄢ的˙ㄉㄜ同ㄊㄨㄥˊ學ㄒㄩㄝˊ比ㄅㄧˇ賽ㄙㄞˋ輸ㄕㄨ了˙ㄌㄜ",en:"A classmate near you just lost the game"},
+  mTitle:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ收ㄕㄡ到ㄉㄠˋ了˙ㄌㄜ任ㄖㄣˋ務ㄨˋ!",en:"The Emotion Defuser squad got a mission!"},
+  m1:{zh:"你ㄋㄧˇ身ㄕㄣ邊ㄅㄧㄢ的˙ㄉㄜ同ㄊㄨㄥˊ學ㄒㄩㄝˊ比ㄅㄧˇ賽ㄙㄞˋ輸ㄕㄨ了˙ㄌㄜ",en:"A classmate just lost the game"},
   m2:{zh:"他ㄊㄚ失ㄕ落ㄌㄨㄛˋ地˙ㄉㄜ坐ㄗㄨㄛˋ在ㄗㄞˋ位ㄨㄟˋ子˙ㄗ上ㄕㄤˋ…",en:"They sit at their seat, feeling down…"},
-  mQ:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ,你ㄋㄧˇ該ㄍㄞ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"Emotion Defuser, what should you do?"},
+  mQ:{zh:"情ㄑㄧㄥˊ緒ㄒㄩˋ拆ㄔㄞ彈ㄉㄢˋ隊ㄉㄨㄟˋ,你ㄋㄧˇ該ㄍㄞ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"Emotion Defuser, what would you do?"},
   step1:{zh:"Step 1 觀ㄍㄨㄢ察ㄔㄚˊ",en:"Step 1 Observe"},
   step2:{zh:"Step 2 思ㄙ考ㄎㄠˇ",en:"Step 2 Think"},
   step3:{zh:"Step 3 行ㄒㄧㄥˊ動ㄉㄨㄥˋ",en:"Step 3 Act"},
-  s1Q:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ,同ㄊㄨㄥˊ學ㄒㄩㄝˊ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ甚ㄕㄣˊ麼˙ㄇㄜ心ㄒㄧㄣ情ㄑㄧㄥˊ呢˙ㄋㄜ?",en:"Look closely — how is your classmate feeling right now?"},
+  s1Q:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ,同ㄊㄨㄥˊ學ㄒㄩㄝˊ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ甚ㄕㄣˊ麼˙ㄇㄜ心ㄒㄧㄣ情ㄑㄧㄥˊ呢˙ㄋㄜ?",en:"Look carefully — how does your classmate feel right now?"},
   s1Hint:{zh:"把ㄅㄚˇ滑ㄏㄨㄚˊ鼠ㄕㄨˇ移ㄧˊ到ㄉㄠˋ他ㄊㄚ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ、眼ㄧㄢˇ睛ㄐㄧㄥ、嘴ㄗㄨㄟˇ巴˙ㄅㄚ、手ㄕㄡˇ上ㄕㄤˋ看ㄎㄢˋ看˙ㄎㄢ",en:"Move your mouse over the eyebrows, eyes, mouth, and hands"},
-  hpBrow:{zh:"看ㄎㄢˋ看˙ㄎㄢ他ㄊㄚ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ是ㄕˋ向ㄒㄧㄤˋ上ㄕㄤˋ↗還ㄏㄞˊ是ㄕˋ向ㄒㄧㄤˋ下ㄒㄧㄚˋ↘呢˙ㄋㄜ?",en:"Are the eyebrows going up ↗ or down ↘?"},
+  hpBrow:{zh:"看ㄎㄢˋ看˙ㄎㄢ他ㄊㄚ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ是ㄕˋ向ㄒㄧㄤˋ上ㄕㄤˋ↗還ㄏㄞˊ是ㄕˋ向ㄒㄧㄤˋ下ㄒㄧㄚˋ↘呢˙ㄋㄜ?",en:"Are the eyebrows going up ↗ or down↘ ?"},
   hpMouth:{zh:"看ㄎㄢˋ看˙ㄎㄢ他ㄊㄚ的˙ㄉㄜ嘴ㄗㄨㄟˇ巴˙ㄅㄚ是ㄕˋ向ㄒㄧㄤˋ上ㄕㄤˋ還ㄏㄞˊ是ㄕˋ向ㄒㄧㄤˋ下ㄒㄧㄚˋ呢˙ㄋㄜ?",en:"Is the mouth turning up or down?"},
-  hpHand:{zh:"你ㄋㄧˇ甚ㄕㄣˊ麼˙ㄇㄜ時ㄕˊ候ㄏㄡˋ會ㄏㄨㄟˋ有ㄧㄡˇ這ㄓㄜˋ樣ㄧㄤˋ的˙ㄉㄜ動ㄉㄨㄥˋ作ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"When do you make a pose like this?"},
-  s1Me:{zh:"我ㄨㄛˇ覺ㄐㄩㄝˊ得˙ㄉㄜ他ㄊㄚ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ…",en:"I think they are feeling…"},
+  hpHand:{zh:"你ㄋㄧˇ甚ㄕㄣˊ麼˙ㄇㄜ時ㄕˊ候ㄏㄡˋ會ㄏㄨㄟˋ有ㄧㄡˇ這ㄓㄜˋ樣ㄧㄤˋ的˙ㄉㄜ動ㄉㄨㄥˋ作ㄗㄨㄛˋ呢˙ㄋㄜ?",en:"When do you make the pose like this?"},
+  s1Me:{zh:"我ㄨㄛˇ覺ㄐㄩㄝˊ得˙ㄉㄜ他ㄊㄚ現ㄒㄧㄢˋ在ㄗㄞˋ是ㄕˋ…",en:"I think they feel…"},
   s1Ph:{zh:"我覺得他現在是…",en:"I think they feel…"},
   s1bA:{zh:"這ㄓㄜˋ樣ㄧㄤˋ啊˙ㄚ,如ㄖㄨˊ果ㄍㄨㄛˇ你ㄋㄧˇ",en:"I see! If YOU felt "},
   s1bB:{zh:"的˙ㄉㄜ話ㄏㄨㄚˋ,你ㄋㄧˇ會ㄏㄨㄟˋ露ㄌㄨˋ出ㄔㄨ甚ㄕㄣˊ麼˙ㄇㄜ樣ㄧㄤˋ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ呢˙ㄋㄜ?",en:", what would your face look like?"},
-  s1bC:{zh:"打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ做ㄗㄨㄛˋ做˙ㄗㄨㄛ看ㄎㄢˋ,並ㄅㄧㄥˋ畫ㄏㄨㄚˋ下ㄒㄧㄚˋ來ㄌㄞˊ吧˙ㄅㄚ!",en:"Turn on the camera, try it, and draw it!"},
-  camCap:{zh:"觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ",en:"Watch your face"},
+  /* en 開頭留一個空格:英文接在上一句的「?」後面,沒空格會黏成 like?Turn */
+  s1bC:{zh:"打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ做ㄗㄨㄛˋ做˙ㄗㄨㄛ看ㄎㄢˋ,並ㄅㄧㄥˋ畫ㄏㄨㄚˋ下ㄒㄧㄚˋ來ㄌㄞˊ吧˙ㄅㄚ!",en:" Turn on the camera, try it, and draw it!"},
+  camHint:{zh:"按ㄢˋ下ㄒㄧㄚˋ面ㄇㄧㄢˋ的˙ㄉㄜ按ㄢˋ鈕ㄋㄧㄡˇ打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ",en:"Press the button below to open the camera"},
+  camErr:{zh:"無ㄨˊ法ㄈㄚˇ開ㄎㄞ啟ㄑㄧˇ鏡ㄐㄧㄥˋ頭ㄊㄡˊ,需ㄒㄩ要ㄧㄠˋ允ㄩㄣˇ許ㄒㄩˇ權ㄑㄩㄢˊ限ㄒㄧㄢˋ",en:"Can't open the camera — please allow camera permission"},
+  camCap:{zh:"觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ",en:"Observe your face"},
   drawCap:{zh:"畫ㄏㄨㄚˋ出ㄔㄨ你ㄋㄧˇ的˙ㄉㄜ表ㄅㄧㄠˇ情ㄑㄧㄥˊ",en:"Draw your face"},
   camOn:{zh:"打ㄉㄚˇ開ㄎㄞ鏡ㄐㄧㄥˋ頭ㄊㄡˊ觀ㄍㄨㄢ察ㄔㄚˊ",en:"Open the camera"},
   camOff:{zh:"關ㄍㄨㄢ閉ㄅㄧˋ鏡ㄐㄧㄥˋ頭ㄊㄡˊ",en:"Close the camera"},
-  s1bHint:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ、眼ㄧㄢˇ睛ㄐㄧㄥ、嘴ㄗㄨㄟˇ巴˙ㄅㄚ有ㄧㄡˇ甚ㄕㄣˊ麼˙ㄇㄜ變ㄅㄧㄢˋ化ㄏㄨㄚˋ?",en:"Look closely: what changed in your eyebrows, eyes, and mouth?"},
+  s1bHint:{zh:"仔ㄗˇ細ㄒㄧˋ觀ㄍㄨㄢ察ㄔㄚˊ你ㄋㄧˇ的˙ㄉㄜ眉ㄇㄟˊ毛ㄇㄠˊ、眼ㄧㄢˇ睛ㄐㄧㄥ、嘴ㄗㄨㄟˇ巴˙ㄅㄚ有ㄧㄡˇ甚ㄕㄣˊ麼˙ㄇㄜ變ㄅㄧㄢˋ化ㄏㄨㄚˋ?",en:"Look carefully: what have changed in your eyebrows, eyes, and mouth?"},
   eraser:{zh:"橡ㄒㄧㄤˋ皮ㄆㄧˊ擦ㄘㄚ",en:"Eraser"},
   clearAll:{zh:"全ㄑㄩㄢˊ部ㄅㄨˋ清ㄑㄧㄥ除ㄔㄨˊ",en:"Clear all"},
   s2Qa:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ",en:"If "},
   s2Qb:{zh:"你ㄋㄧˇ",en:"YOU"},
   s2Qc:{zh:"遇ㄩˋ到ㄉㄠˋ這ㄓㄜˋ樣ㄧㄤˋ的˙ㄉㄜ情ㄑㄧㄥˊ境ㄐㄧㄥˋ,你ㄋㄧˇ會ㄏㄨㄟˋ希ㄒㄧ望ㄨㄤˋ別ㄅㄧㄝˊ人ㄖㄣˊ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ?",en:" were in this situation, what would you want others to do?"},
   n1:{zh:"給ㄍㄟˇ我ㄨㄛˇ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ",en:"Give me some space"},
-  n2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ我ㄨㄛˇ說ㄕㄨㄛ",en:"Quietly listen to me"},
-  n3:{zh:"陪ㄆㄟˊ我ㄨㄛˇ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Take a walk with me"},
+  n2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ我ㄨㄛˇ說ㄕㄨㄛ",en:"Listen to me"},
+  n3:{zh:"陪ㄆㄟˊ我ㄨㄛˇ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Go for a walk with me"},
   other:{zh:"其ㄑㄧˊ他ㄊㄚ",en:"Other"},
   s2Ph:{zh:"我希望別人…",en:"I'd want others to…"},
   s3Qa:{zh:"當ㄉㄤ你ㄋㄧˇ看ㄎㄢˋ到ㄉㄠˋ",en:"When you see "},
   s3Qb:{zh:"別ㄅㄧㄝˊ人ㄖㄣˊ",en:"someone else"},
   s3Qc:{zh:"這ㄓㄜˋ樣ㄧㄤˋ時ㄕˊ,你ㄋㄧˇ會ㄏㄨㄟˋ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ?",en:" like this, what will you do?"},
   a1:{zh:"給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ",en:"Give them some space"},
-  a2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ",en:"Quietly listen to them"},
-  a3:{zh:"陪ㄆㄟˊ他ㄊㄚ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Take a walk with them"},
+  a2:{zh:"靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ",en:"Listen to them"},
+  a3:{zh:"陪ㄆㄟˊ他ㄊㄚ走ㄗㄡˇ一ㄧ走ㄗㄡˇ",en:"Go for a walk with them"},
   s3Ph:{zh:"我會…",en:"I would…"},
   r1:{zh:"謝ㄒㄧㄝˋ謝˙ㄒㄧㄝ你ㄋㄧˇ,我ㄨㄛˇ現ㄒㄧㄢˋ在ㄗㄞˋ好ㄏㄠˇ多ㄉㄨㄛ了˙ㄌㄜ。",en:"Thank you, I feel much better now."},
-  r2:{zh:"謝ㄒㄧㄝˋ謝˙ㄒㄧㄝ你ㄋㄧˇ,可ㄎㄜˇ是ㄕˋ我ㄨㄛˇ現ㄒㄧㄢˋ在ㄗㄞˋ想ㄒㄧㄤˇ一ㄧ個˙ㄍㄜ人ㄖㄣˊ靜ㄐㄧㄥˋ一ㄧ靜ㄐㄧㄥˋ。",en:"Thank you, but right now I'd like to be alone for a bit."},
-  r3:{zh:"你ㄋㄧˇ現ㄒㄧㄢˋ在ㄗㄞˋ有ㄧㄡˇ空ㄎㄨㄥˋ嗎˙ㄇㄚ?我ㄨㄛˇ想ㄒㄧㄤˇ和ㄏㄢˋ你ㄋㄧˇ聊ㄌㄧㄠˊ一ㄧ聊ㄌㄧㄠˊ。",en:"Are you free right now? I'd like to talk with you."},
+  r2:{zh:"謝ㄒㄧㄝˋ謝˙ㄒㄧㄝ你ㄋㄧˇ,可ㄎㄜˇ是ㄕˋ我ㄨㄛˇ現ㄒㄧㄢˋ在ㄗㄞˋ想ㄒㄧㄤˇ一ㄧ個˙ㄍㄜ人ㄖㄣˊ靜ㄐㄧㄥˋ一ㄧ靜ㄐㄧㄥˋ。",en:"Thank you, but I'd like to be alone right now."},
+  r3:{zh:"你ㄋㄧˇ現ㄒㄧㄢˋ在ㄗㄞˋ有ㄧㄡˇ空ㄎㄨㄥˋ嗎˙ㄇㄚ?我ㄨㄛˇ想ㄒㄧㄤˇ和ㄏㄢˋ你ㄋㄧˇ聊ㄌㄧㄠˊ一ㄧ聊ㄌㄧㄠˊ。",en:"Are you free now? I'd like to talk with you."},
   peersBtn:{zh:"看ㄎㄢˋ看˙ㄎㄢ其ㄑㄧˊ他ㄊㄚ小ㄒㄧㄠˇ朋ㄆㄥˊ友ㄧㄡˇ怎ㄗㄣˇ麼˙ㄇㄜ做ㄗㄨㄛˋ",en:"See what other kids did"},
   endHeart:{zh:"同ㄊㄨㄥˊ理ㄌㄧˇ心ㄒㄧㄣ",en:"Empathy"},
   endSteps:{zh:"觀ㄍㄨㄢ察ㄔㄚˊ · 思ㄙ考ㄎㄠˇ · 行ㄒㄧㄥˊ動ㄉㄨㄥˋ",en:"Observe · Think · Act"},
   b1:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ生ㄕㄥ氣ㄑㄧˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ別ㄅㄧㄝˊ人ㄖㄣˊ不ㄅㄨˊ要ㄧㄠˋ一ㄧ直ㄓˊ講ㄐㄧㄤˇ話ㄏㄨㄚˋ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ先ㄒㄧㄢ給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ。",en:"If it were me, I'd feel angry. I'd want others to stop talking, so I'd give them some space first."},
-  b2:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ難ㄋㄢˊ過ㄍㄨㄛˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ陪ㄆㄟˊ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ坐ㄗㄨㄛˋ在ㄗㄞˋ他ㄊㄚ旁ㄆㄤˊ邊ㄅㄧㄢ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ。",en:"If it were me, I'd feel sad. I'd want someone to quietly stay with me, so I'd sit beside them and listen."},
-  b3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ不ㄅㄨˋ甘ㄍㄢ心ㄒㄧㄣ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ懂ㄉㄨㄥˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ他ㄊㄚ說ㄕㄨㄛ『下ㄒㄧㄚˋ次ㄘˋ再ㄗㄞˋ一ㄧ起ㄑㄧˇ加ㄐㄧㄚ油ㄧㄡˊ』。",en:"If it were me, I'd feel frustrated. I'd want someone to understand me, so I'd say: let's try again next time!"},
-  b4:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ疲ㄆㄧˊ累ㄌㄟˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ能ㄋㄥˊ趴ㄆㄚ在ㄗㄞˋ桌ㄓㄨㄛ子˙ㄗ休ㄒㄧㄡ息ㄒㄧˊ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ先ㄒㄧㄢ給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ。",en:"If it were me, I'd feel tired. I'd want to rest on my desk, so I'd give them some space first."},
+  b2:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ難ㄋㄢˊ過ㄍㄨㄛˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ靜ㄐㄧㄥˋ靜ㄐㄧㄥˋ陪ㄆㄟˊ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ坐ㄗㄨㄛˋ在ㄗㄞˋ他ㄊㄚ旁ㄆㄤˊ邊ㄅㄧㄢ聽ㄊㄧㄥ他ㄊㄚ說ㄕㄨㄛ。",en:"If it were me, I'd feel sad. I'd want someone to stay with me, so I'd sit beside them and listen."},
+  b3:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ不ㄅㄨˋ甘ㄍㄢ心ㄒㄧㄣ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ懂ㄉㄨㄥˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ他ㄊㄚ說ㄕㄨㄛ『下ㄒㄧㄚˋ次ㄘˋ再ㄗㄞˋ一ㄧ起ㄑㄧˇ加ㄐㄧㄚ油ㄧㄡˊ』。",en:"If it were me, I'd feel frustrated. I'd want someone to understand me, so I'd say “Let's try again next time!”"},
+  b4:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ疲ㄆㄧˊ累ㄌㄟˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ能ㄋㄥˊ趴ㄆㄚ在ㄗㄞˋ桌ㄓㄨㄛ子˙ㄗ休ㄒㄧㄡ息ㄒㄧˊ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ先ㄒㄧㄢ給ㄍㄟˇ他ㄊㄚ一ㄧ點ㄉㄧㄢˇ空ㄎㄨㄥ間ㄐㄧㄢ。",en:"If it were me, I'd feel tired. I'd like to take a rest, so I'd give them some space first."},
   b5:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ難ㄋㄢˊ過ㄍㄨㄛˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ能ㄋㄥˊ讓ㄖㄤˋ我ㄨㄛˇ轉ㄓㄨㄢˇ換ㄏㄨㄢˋ心ㄒㄧㄣ情ㄑㄧㄥˊ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ他ㄊㄚ分ㄈㄣ享ㄒㄧㄤˇ零ㄌㄧㄥˊ食ㄕˊ。",en:"If it were me, I'd feel sad. I'd want someone to cheer me up, so I'd share a snack with them."},
   b6:{zh:"如ㄖㄨˊ果ㄍㄨㄛˇ是ㄕˋ我ㄨㄛˇ,我ㄨㄛˇ會ㄏㄨㄟˋ覺ㄐㄩㄝˊ得˙ㄉㄜ生ㄕㄥ氣ㄑㄧˋ。我ㄨㄛˇ希ㄒㄧ望ㄨㄤˋ有ㄧㄡˇ人ㄖㄣˊ能ㄋㄥˊ開ㄎㄞ導ㄉㄠˇ我ㄨㄛˇ,所ㄙㄨㄛˇ以ㄧˇ我ㄨㄛˇ會ㄏㄨㄟˋ跟ㄍㄣ老ㄌㄠˇ師ㄕ說ㄕㄨㄛ。",en:"If it were me, I'd feel angry. I'd want someone to guide me, so I'd talk to the teacher."},
   b7:{zh:"就ㄐㄧㄡˋ算ㄙㄨㄢˋ用ㄩㄥˋ自ㄗˋ己ㄐㄧˇ希ㄒㄧ望ㄨㄤˋ的˙ㄉㄜ方ㄈㄤ式ㄕˋ安ㄢ慰ㄨㄟˋ,別ㄅㄧㄝˊ人ㄖㄣˊ也ㄧㄝˇ不ㄅㄨˋ一ㄧ定ㄉㄧㄥˋ能ㄋㄥˊ接ㄐㄧㄝ受ㄕㄡˋ呢˙ㄋㄜ。",en:"Even if we comfort others the way WE like, they may not always accept it."},
@@ -1087,7 +1090,7 @@ function Step1bScreen({g}){
               {!cam.on && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ink/35">
                   <Camera size={52} className="opacity-40"/>
-                  <span className="text-sm font-bold">按下方按鈕打開鏡頭</span>
+                  <span className="text-center text-sm font-bold"><RubyText g={g} k="camHint"/></span>
                 </div>
               )}
             </div>
@@ -1096,7 +1099,7 @@ function Step1bScreen({g}){
               {cam.on?<CameraOff size={20}/>:<Camera size={20}/>}
               <RubyText g={g} k={cam.on?"camOff":"camOn"}/>
             </button>
-            {cam.error && <p className="text-center text-sm font-bold leading-relaxed text-blush">⚠ 無法開啟鏡頭(需要 https 或 localhost,並允許權限)</p>}
+            {cam.error && <p className="text-center text-sm font-bold leading-relaxed text-blush">⚠ <RubyText g={g} k="camErr"/></p>}
           </div>
 
           {/* 畫板 */}
