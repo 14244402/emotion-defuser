@@ -430,7 +430,18 @@ function useEmotionDefuser({
     }
   },[lang,autoSpeak,splashInMs,splashOutMs]);
 
-  const next=useCallback(()=>{const t=FLOW[screen]?.next;if(t)goTo(t);},[screen,goTo]);
+  const next=useCallback(()=>{
+    const t=FLOW[screen]?.next;
+    if(!t)return;
+    /* 沒選行動就直接按下一步時,仍然隨機給一個同學回應。
+       只補回應,不會替學生補上「行動」的答案(答案卡那欄照樣留空)。 */
+    if(t==="resp" && answers.resp==null){
+      const resp=pickResponse(answers.action||"other");
+      setAnswers(a=>({...a,resp}));
+      if(autoSpeak) later(()=>speakPair(lang,STR["r"+(resp+1)]),650);
+    }
+    goTo(t);
+  },[screen,goTo,answers.resp,answers.action,lang,autoSpeak]);
   const back=useCallback(()=>{
     const t=FLOW[screen]?.back;
     if(!t)return;
