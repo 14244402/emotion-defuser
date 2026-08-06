@@ -659,6 +659,58 @@ function Placeholder({label, className="", icon:Ic=ImageIcon}){
   );
 }
 
+/* 一格一格出現時,畫面自動跟著往下捲到剛出現的那一格,最後停在按鈕上。
+   itemsRef 是存放各格 DOM 的 ref 陣列,ctaRef 是最後的按鈕。 */
+function useRevealScroll(itemsRef, ctaRef, count, stagger){
+  useEffect(()=>{
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let tween = 0, stopped = false;
+    /* 自己補間。不用 scrollTo({behavior:"smooth"}) 也不用 requestAnimationFrame:
+       兩者在部分內嵌/預覽瀏覽器都不會動(rAF 根本不觸發),計時器才是到處都可靠的。 */
+    const glideTo = top => {
+      clearInterval(tween);
+      const from = window.scrollY, dist = top - from, dur = 560, t0 = Date.now();
+      if (Math.abs(dist) < 4) return;
+      const ease = t => (t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2);
+      tween = setInterval(()=>{
+        if (stopped) { clearInterval(tween); return; }
+        const p = Math.min((Date.now()-t0)/dur, 1);
+        window.scrollTo(0, from + dist*ease(p));
+        if (p >= 1) clearInterval(tween);
+      }, 16);
+    };
+
+    /* 扣掉頂部固定列與底部導覽列,把該格放在真正看得到的區域中央 */
+    const HEAD = 64, FOOT = 96;
+    const go = el => {
+      if (!el || stopped) return;
+      const r = el.getBoundingClientRect();
+      const view = window.innerHeight - HEAD - FOOT;
+      const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+      const top = r.top + window.scrollY - HEAD - Math.max((view - r.height)/2, 12);
+      glideTo(Math.min(Math.max(top, 0), max));
+    };
+
+    const timers = [];
+    /* 第一格不捲:頁面本來就停在最上面,捲了反而是多餘的跳動 */
+    for (let i=1; i<count; i++)
+      timers.push(setTimeout(()=>go(itemsRef.current[i]), (i*stagger + 0.3)*1000));
+    timers.push(setTimeout(()=>go(ctaRef.current), (count*stagger + 0.7)*1000));
+
+    /* 使用者自己動滾輪或滑螢幕時就交還控制權,不要跟他搶 */
+    const surrender = ()=>{ stopped = true; clearInterval(tween); timers.forEach(clearTimeout); };
+    window.addEventListener("wheel", surrender, {passive:true, once:true});
+    window.addEventListener("touchmove", surrender, {passive:true, once:true});
+
+    return ()=>{
+      surrender();
+      window.removeEventListener("wheel", surrender);
+      window.removeEventListener("touchmove", surrender);
+    };
+  },[count,stagger]);
+}
+
 /* 場景插圖:統一的容器(單層粗框、無白底方框、邊緣柔化) */
 function Illo({src, alt, className="", imgClassName="", tone="bg-sand", children}){
   return (
@@ -700,13 +752,16 @@ function Hud({g}){
         <div className="flex shrink-0 items-center gap-0.5">
           {[0,1,2].map(i=><Heart key={i} size={18} className="text-black" fill="#DD3A31"/>)}
         </div>
-        {/* 進度條:炸彈跟著進度往前跑,取代原本固定在旁邊的第二顆炸彈 */}
-        <div className="relative flex h-4 flex-1 items-center rounded-full border-2 border-black bg-white">
+        {/* 進度條:笑臉跟著進度往前跑,走過的部分用主色填滿 */}
+        <div className="relative flex h-5 flex-1 items-center rounded-full border-2 border-black bg-white">
           <div className="h-full rounded-full bg-teal transition-[width] duration-700 ease-out"
             style={{width:g.progress+"%"}}/>
-          <Bomb size={18}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rotate-12 text-ink transition-[left] duration-700 ease-out"
-            style={{left:"calc("+g.progress+"% )"}}/>
+          <span
+            className="absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center
+                       rounded-full border-2 border-black bg-mango text-ink transition-[left] duration-700 ease-out"
+            style={{left:g.progress+"%"}}>
+            <Smile size={16} strokeWidth={2.4}/>
+          </span>
         </div>
         <LangSwitch g={g}/>
       </div>
@@ -717,9 +772,6 @@ function Hud({g}){
 /* ─── 底部導覽:上一步 / 下一步(每頁都有) ─── */
 function NavBar({g}){
   const flow=FLOW[g.screen]||{};
-  const canNext={comic:true,mission:true,
-    step1:!!g.answers.emotion, step1b:true,
-    step2:!!g.answers.need, step3:g.answers.resp!=null, resp:true}[g.screen];
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-4 pt-10
                     bg-gradient-to-t from-paper via-paper/85 to-transparent">
@@ -731,11 +783,9 @@ function NavBar({g}){
             </button>}
         </div>
         <div className="pointer-events-auto">
+          {/* 不強制先選選項:每一頁都能直接按下一步(沒選的題目在答案卡上會留空) */}
           {flow.next && g.screen!=="start" &&
-            <button onClick={g.next} disabled={!canNext}
-              title={canNext?"":"先做出選擇才能繼續"}
-              className={BTN+" bg-mango px-5 py-2.5 text-lg "+
-                (!canNext?"cursor-not-allowed opacity-35 saturate-50 shadow-[3px_3px_0px_0px_#000] hover:translate-y-0 hover:shadow-[3px_3px_0px_0px_#000]":"")}>
+            <button onClick={g.next} className={BTN+" bg-mango px-5 py-2.5 text-lg"}>
               <RubyText g={g} k="next"/><ArrowRight size={20}/>
             </button>}
         </div>
@@ -839,11 +889,14 @@ function ComicScreen({g}){
     {k:"c4", img:"comic4", badge:"bg-teal",   note:"學習拆解情緒炸彈"},
   ];
   const STAGGER=0.45;
+  const cells=useRef([]); const cta=useRef(null);
+  useRevealScroll(cells, cta, panels.length, STAGGER);
   return (
     <div className="mx-auto max-w-5xl px-4 pt-6">
       <div className="grid gap-5 md:grid-cols-2">
         {panels.map((p,i)=>(
-          <div key={p.k} className={CARD+" overflow-hidden animate-[popIn_.45s_both]"}
+          <div key={p.k} ref={el=>cells.current[i]=el}
+            className={CARD+" overflow-hidden animate-[popIn_.45s_both]"}
             style={{animationDelay:(i*STAGGER)+"s"}}>
             {/* 插圖直接貼齊卡片上緣:去掉內層白框與留白,不再有「圖貼在方框裡」的感覺 */}
             {/* aspect 對齊插圖原始比例 800×500,不做任意裁切 */}
@@ -860,7 +913,7 @@ function ComicScreen({g}){
         ))}
       </div>
       {/* 你準備好了嗎?(四格跑完才出現) */}
-      <div className="mt-8 flex justify-center animate-[fadeUp_.5s_both]"
+      <div ref={cta} className="mt-8 flex justify-center animate-[fadeUp_.5s_both]"
         style={{animationDelay:(panels.length*STAGGER+0.35)+"s"}}>
         <button onClick={g.next} className={BTN+" bg-tomato px-8 py-4 text-2xl text-white md:text-3xl"}>
           <Sparkles size={26}/><RubyText g={g} k="ready"/>
@@ -872,6 +925,9 @@ function ComicScreen({g}){
 
 /* ─── 3. 任務頁 ─── */
 function MissionScreen({g}){
+  const M_STAGGER=0.35;
+  const cells=useRef([]); const cta=useRef(null);
+  useRevealScroll(cells, cta, 2, M_STAGGER);
   return (
     <div className="mx-auto max-w-4xl px-4 pt-6">
       {/* 警報條:晃動幅度收小,避免文字讀起來暈 */}
@@ -885,14 +941,15 @@ function MissionScreen({g}){
           {k:"m1", note:"運動比賽輸了", img:"mission1"},
           {k:"m2", note:"失落地坐在位子上", img:"mission2"},
         ].map((p,i)=>(
-          <div key={p.k} className={CARD+" overflow-hidden animate-[popIn_.45s_both]"} style={{animationDelay:(i*0.35)+"s"}}>
+          <div key={p.k} ref={el=>cells.current[i]=el}
+            className={CARD+" overflow-hidden animate-[popIn_.45s_both]"} style={{animationDelay:(i*M_STAGGER)+"s"}}>
             <Illo src={p.img} alt={p.note} tone="bg-sand" className="aspect-[8/5] border-b-4 border-black"/>
             <p className={"p-4 "+T.lead}><Speakable g={g} k={p.k}/></p>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 flex flex-col items-center gap-5 animate-[fadeUp_.5s_.9s_both]">
+      <div ref={cta} className="mt-8 flex flex-col items-center gap-5 animate-[fadeUp_.5s_.9s_both]">
         <p className={"text-center "+T.h2}><Speakable g={g} k="mQ"/></p>
         <button onClick={g.next} className={BTN+" bg-mango px-8 py-3.5 text-2xl"}>
           <RubyText g={g} k="next"/><ArrowRight size={24}/>
