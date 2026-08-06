@@ -904,7 +904,9 @@ function ComicScreen({g}){
     {k:"c3", img:"comic3", badge:"bg-mango",  note:"情緒炸彈爆炸了"},
     {k:"c4", img:"comic4", badge:"bg-teal",   note:"學習拆解情緒炸彈"},
   ];
-  const STAGGER=0.45;
+  /* 一格停 2.2 秒再往下:小朋友要有時間把整句唸完(扣掉 0.3 秒的捲動延遲,
+     每格實際停留約 1.9 秒)。想快轉就自己滑滾輪,自動捲動會立刻交還控制權。 */
+  const STAGGER=2.2;
   const cells=useRef([]); const cta=useRef(null);
   useRevealScroll(cells, cta, panels.length, STAGGER);
   return (
@@ -941,7 +943,7 @@ function ComicScreen({g}){
 
 /* ─── 3. 任務頁 ─── */
 function MissionScreen({g}){
-  const M_STAGGER=0.35;
+  const M_STAGGER=2.0;
   const cells=useRef([]); const cta=useRef(null);
   useRevealScroll(cells, cta, 2, M_STAGGER);
   return (
@@ -965,7 +967,9 @@ function MissionScreen({g}){
         ))}
       </div>
 
-      <div ref={cta} className="mt-8 flex flex-col items-center gap-5 animate-[fadeUp_.5s_.9s_both]">
+      {/* 延遲跟著 M_STAGGER 走,兩格都出現並讀完才問「你該怎麼做呢?」 */}
+      <div ref={cta} className="mt-8 flex flex-col items-center gap-5 animate-[fadeUp_.5s_both]"
+        style={{animationDelay:(2*M_STAGGER+0.35)+"s"}}>
         <p className={"text-center "+T.h2}><Speakable g={g} k="mQ"/></p>
         <button onClick={g.next} className={BTN+" bg-mango px-8 py-3.5 text-2xl"}>
           <RubyText g={g} k="next"/><ArrowRight size={24}/>
